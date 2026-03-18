@@ -38,6 +38,32 @@ function app_load_env(): void
     }
 }
 
+/**
+ * Read configuration values from the loaded `.env` file or the real process
+ * environment.
+ *
+ * Docker Compose injects environment variables into the PHP process even
+ * before the installer has written `.env`. Looking at `$_SERVER` and `getenv()`
+ * keeps the app Docker-friendly while preserving the existing `.env` behavior.
+ */
+function app_env(string $key, mixed $default = null): mixed
+{
+    if (array_key_exists($key, $_ENV)) {
+        return $_ENV[$key];
+    }
+
+    if (array_key_exists($key, $_SERVER)) {
+        return $_SERVER[$key];
+    }
+
+    $value = getenv($key);
+    if ($value !== false) {
+        return $value;
+    }
+
+    return $default;
+}
+
 function app_is_installed(array $config): bool
 {
     // Both the env flag and the lock file must exist so half-finished installs

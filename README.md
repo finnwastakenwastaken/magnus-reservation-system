@@ -1,119 +1,170 @@
 # MAGNUS Reservation System
 
-MAGNUS Reservation System is a plain PHP application for managing reservations for a shared living room in an apartment complex. It includes resident signup and activation, calendar-based reservations, internal messaging, bilingual Dutch/English support, a database-backed staff role/permission system, branding controls, a first-run installer, and a conservative in-app updater for supported deployments.
+MAGNUS Reservation System is a plain PHP application for managing reservations for a shared living room in an apartment building. It includes resident signup and activation, privacy-aware reservations, internal messaging, bilingual Dutch/English support, role-based staff access, and a first-run web installer.
 
 ## Overview
 
-This project is designed as a lightweight, framework-free MVP that is still structured for maintainability. It uses PDO for database access, MariaDB/MySQL for storage, Bootstrap for the interface, and a simple front-controller architecture.
+The project is designed as a lightweight MVP with a clean, framework-free structure. It uses PDO for database access, MariaDB for storage, Bootstrap for the UI, and Docker Compose as the only supported deployment method.
 
-Key goals:
-
-- plain PHP without a full framework
-- secure defaults for authentication, CSRF, and session handling
-- privacy-aware resident experience
-- straightforward installation on Docker, classic hosting, Coolify, or a VPS
-- easy first-time setup through a web installer
+Historical non-Docker deployment guides have been removed from the project and are no longer supported.
 
 ## Features
 
 - Resident signup with mailbox-based activation codes
-- Secure login and session-based authentication
-- Shared-room reservation calendar with overlap protection
-- Configurable booking limits and opening hours
-- Internal resident messaging with optional Mailjet notifications
-- Database-backed roles and permissions with protected super-admin access
-- Default resident, manager, and admin roles plus custom role management
-- Bilingual interface in English and Dutch
-- Admin/staff panel for users, reservations, roles, settings, branding, and updates
-- First-run installer that writes `.env` and creates the initial admin account
-- In-app updater for supported mutable deployments
-- Public availability overview for guests with no personal details
-- Admin-managed site logo uploads
-- Privacy-aware account management, including:
-  - data overview and export
-  - password change
-  - verified email-change flow
-  - self-service account deletion and anonymization
-  - privacy visibility settings for optional profile fields
-  - profile picture upload and removal
+- Reservation calendar with overlap protection and configurable booking limits
+- Public availability page with no resident-identifying details
+- Internal messaging with optional Mailjet email notifications
+- Privacy-aware account settings, data export, and self-service account deletion
+- Role and permission management for residents, managers, and administrators
+- Admin-managed branding logo and user profile pictures
+- Bilingual Dutch/English interface
+- First-run installer that writes `.env` and creates the first administrator
 
-## Feature summary
+## Feature Summary
 
-- Public guests can view room availability without seeing resident names or contact details.
-- Residents can manage their own privacy settings, profile picture, password, and verified email changes.
-- Staff permissions are role-driven: managers and custom roles can be granted operational access without receiving full administrator rights.
-- Protected administrators can additionally manage booking settings, roles/permissions, site branding, and application updates.
-- Staff-triggered reservation changes and cancellations create user-visible notifications and optional email alerts.
+- Guests can check room availability without logging in.
+- Residents can manage their profile, privacy settings, password, and verified email changes.
+- Staff access is permission-driven, so managers can be granted operational access without receiving full system control.
+- Reservation changes by staff are logged and can notify the affected resident.
 
 ## Requirements / Prerequisites
 
-### Runtime
+- Docker Engine 24+ or Docker Desktop with the Compose plugin
+- Git for cloning and updating the repository
+- A modern browser for the installer and admin interface
 
-- PHP `8.1+`
-- MariaDB `10.5+` or MySQL `8+`
-- Apache `2.4+` or Nginx `1.18+`
-
-### Required PHP extensions
-
-- `pdo`
-- `pdo_mysql`
-- `json`
-- `session`
-- `openssl`
-
-Recommended:
-
-- `mbstring`
-- `curl`
-- `intl`
-- `zip` for archive-based in-app updates
-
-### Web server requirements
-
-- document root must point to `public/`
-- URL rewriting must be enabled
-- the PHP/web server user must be able to write:
-  - `.env`
-  - `storage/`
-  - `storage/logs/`
-  - `storage/backups/`
-  - `storage/updates/`
-  - `public/uploads/`
-
-### Dependencies
-
-Composer is not required. The project currently has no Composer-managed runtime dependencies.
-
-### Optional external services
-
-- Mailjet for outbound email notifications
-- Cloudflare Turnstile for anti-bot protection
-
-If those credentials are not configured:
-
-- email delivery falls back to file logging in `storage/logs/app.log`
-- Turnstile checks are skipped gracefully in local development
+You do not need PHP, Apache, or MariaDB installed directly on the host machine. The Compose stack provides them.
 
 ## Installation
 
-Start by obtaining the code:
+### 1. Get the Code
+
+Clone the repository:
 
 ```bash
 git clone https://github.com/finnwastakenwastaken/magnus-reservation-system.git
 cd magnus-reservation-system
 ```
 
-You can also download the repository ZIP from GitHub and extract it manually.
+If you prefer, download the repository ZIP from GitHub and extract it locally before continuing.
 
-### Docker
+### 2. Start Docker Compose
 
-1. Build and start the stack:
+Build and start the application and database services:
 
 ```bash
 docker compose up -d --build
 ```
 
-2. View logs if needed:
+Open the app in your browser:
+
+```text
+http://localhost:8080
+```
+
+### 3. Complete the First-Run Installer
+
+On a fresh install, the app redirects automatically to `/install`.
+
+Recommended Docker defaults:
+
+- database host: `db`
+- database port: `3306`
+- database name: `living_room`
+- database username: `living_room`
+- database password: `change_me_database_password`
+
+These values match the default `docker-compose.yml` configuration unless you changed them before starting the stack.
+
+### 4. Finish Setup
+
+In the installer:
+
+- confirm the database connection details
+- set the application URL
+- create the first administrator account
+
+After a successful install:
+
+- `.env` is written in the project root
+- `storage/installed.lock` is created
+- `/install` is blocked until you intentionally reset the install state
+
+## Configuration
+
+The repository includes a safe `.env.example` file. Copy it to `.env` only if you need to prepare values manually before or after running the installer.
+
+```bash
+cp .env.example .env
+```
+
+Important notes:
+
+- never commit `.env`
+- use placeholder values until you are ready to supply real credentials
+- the installer normally writes the main app and database values for you
+
+Important environment variables:
+
+- App:
+  - `APP_NAME`
+  - `APP_ENV`
+  - `APP_DEBUG`
+  - `APP_URL`
+  - `APP_LOCALE`
+  - `SESSION_SECURE`
+- Database:
+  - `DB_HOST`
+  - `DB_PORT`
+  - `DB_DATABASE`
+  - `DB_USERNAME`
+  - `DB_PASSWORD`
+  - `DB_ROOT_PASSWORD`
+- Mailjet:
+  - `MAILJET_ENABLED`
+  - `MAILJET_API_KEY`
+  - `MAILJET_API_SECRET`
+  - `MAIL_FROM_EMAIL`
+  - `MAIL_FROM_NAME`
+- Cloudflare Turnstile:
+  - `TURNSTILE_SITE_KEY`
+  - `TURNSTILE_SECRET_KEY`
+
+The in-app updater remains in the codebase for legacy mutable installs, but it is not a supported operational path for this Docker Compose deployment model. Leave `UPDATE_ENABLED=false` unless you are deliberately testing unsupported behavior.
+
+## First-Run Installer
+
+The installer is intended to work naturally inside Docker Compose:
+
+- the app container connects to the MariaDB service named `db`
+- the MariaDB container already creates the configured database and database user
+- the installer applies the schema, marks shipped migrations as installed, and creates the first administrator account
+
+If installation fails midway:
+
+1. inspect the app logs
+2. fix the underlying issue
+3. retry `/install`
+
+To rerun the installer in development, remove `.env` and `storage/installed.lock`, then restart the stack.
+
+## Usage
+
+### Common Docker Commands
+
+Start or rebuild the stack:
+
+```bash
+docker compose up -d --build
+```
+
+Stop the stack:
+
+```bash
+docker compose down
+```
+
+View logs:
 
 ```bash
 docker compose logs -f
@@ -121,472 +172,128 @@ docker compose logs -f app
 docker compose logs -f db
 ```
 
-3. Open the application:
-
-```text
-http://localhost:8080
-```
-
-4. Complete the installer at `/install`.
-
-Compose defaults use placeholder-style values and can be overridden through your local shell or a Compose `.env` file:
-
-- host: `db`
-- port: `3306`
-- database: `${DB_DATABASE:-living_room}`
-- username: `${DB_USERNAME:-living_room}`
-- password: `${DB_PASSWORD:-change_me_database_password}`
-
-Use the same database values in the web installer unless you intentionally changed the Compose variables before starting the stack.
-
-Useful commands:
+Open a shell in the app container:
 
 ```bash
-docker compose down
-docker compose down -v
-docker compose up -d --build
+docker compose exec app sh
 ```
 
-Persistence notes:
+### Data Persistence
 
-- database data is stored in the `mariadb_data` volume
-- application runtime state is stored in the project directory, including `.env`, `storage/`, and `public/uploads/`
-- the database service is intentionally not exposed on a host port by default
+- MariaDB data is stored in the named volume `mariadb_data`
+- application state such as `.env`, logs, backups, and uploads is stored in the project working tree because the repository is mounted into the app container
 
-Do not use the in-app updater in Docker deployments. Rebuild and redeploy from Git instead.
+Do not run `docker compose down -v` unless you intentionally want to delete the database volume.
 
-### Shared hosting / classic Apache or Nginx hosting
+### Admin Recovery
 
-1. Upload or clone the project to your server, for example:
+The installer normally creates the first administrator. If you need a manual recovery path, run the bootstrap script inside the app container:
 
 ```bash
-git clone https://github.com/finnwastakenwastaken/magnus-reservation-system.git /var/www/living-room
+docker compose exec app php scripts/bootstrap_admin.php <first_name> <last_name> <email> <apartment_number> <password>
 ```
 
-2. Set the document root to:
+Use placeholder values that fit your environment and never commit real credentials.
 
-```text
-/var/www/living-room/public
-```
+## Updating
 
-3. Ensure `.env` and `storage/` are writable by the web server user.
+Docker Compose is the only supported update path.
 
-Typical Linux permissions:
-
-```bash
-sudo touch /var/www/living-room/.env
-sudo chown www-data:www-data /var/www/living-room/.env
-sudo chmod 664 /var/www/living-room/.env
-sudo chown -R www-data:www-data /var/www/living-room/storage
-sudo chmod -R 775 /var/www/living-room/storage
-```
-
-4. Configure your web server.
-
-Apache:
-
-- use `deployment/apache-vhost.conf`
-- enable `mod_rewrite`
-
-```bash
-sudo a2enmod rewrite
-sudo cp /var/www/living-room/deployment/apache-vhost.conf /etc/apache2/sites-available/living-room.conf
-sudo a2ensite living-room.conf
-sudo systemctl reload apache2
-```
-
-Nginx:
-
-- use `deployment/nginx-site.conf`
-- adjust `server_name`
-- adjust the PHP-FPM socket if needed
-
-```bash
-sudo cp /var/www/living-room/deployment/nginx-site.conf /etc/nginx/sites-available/living-room
-sudo ln -s /etc/nginx/sites-available/living-room /etc/nginx/sites-enabled/living-room
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-5. Open the site and complete the installer.
-
-### Coolify
-
-Use Coolify as a Dockerfile-based deployment.
-
-1. Create a new application in Coolify using the Git repository.
-2. Use the included `Dockerfile`.
-3. Expose port `80`.
-4. Provision a MariaDB service in Coolify or connect to an external MariaDB/MySQL database.
-5. Make sure persistent writable storage covers:
-   - `.env`
-   - `storage/installed.lock`
-   - `storage/logs/`
-   - `storage/backups/`
-   - `storage/updates/`
-   - `public/uploads/`
-6. Deploy the application and open `/install`.
-
-Do not use the in-app updater on Coolify. Redeploy from GitHub through Coolify instead.
-
-### VPS
-
-This guide assumes a fresh Ubuntu server with Nginx, PHP-FPM, and MariaDB.
-
-1. Prepare the server with the included helper script logic:
-
-```bash
-sudo bash <<'SH'
-set -euo pipefail
-export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y software-properties-common ca-certificates curl unzip git ufw
-add-apt-repository -y ppa:ondrej/php
-apt-get update
-apt-get install -y nginx mariadb-server php8.3 php8.3-cli php8.3-fpm php8.3-mysql php8.3-mbstring php8.3-xml php8.3-curl php8.3-zip php8.3-intl
-systemctl enable nginx
-systemctl enable php8.3-fpm
-systemctl enable mariadb
-systemctl start nginx
-systemctl start php8.3-fpm
-systemctl start mariadb
-ufw allow OpenSSH || true
-ufw allow 'Nginx Full' || true
-mkdir -p /var/www/living-room
-echo "Base stack installed. Clone or upload the repository into /var/www/living-room next."
-SH
-```
-
-The same setup logic is also available in `scripts/vps-bootstrap.sh`.
-
-2. Clone the project:
-
-```bash
-cd /var/www
-sudo git clone https://github.com/finnwastakenwastaken/magnus-reservation-system.git living-room
-sudo chown -R www-data:www-data /var/www/living-room
-```
-
-3. Secure MariaDB:
-
-```bash
-sudo mysql_secure_installation
-```
-
-4. Optionally create the database and user manually:
-
-```sql
-CREATE DATABASE living_room CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'living_room'@'localhost' IDENTIFIED BY 'your_strong_database_password';
-GRANT ALL PRIVILEGES ON living_room.* TO 'living_room'@'localhost';
-FLUSH PRIVILEGES;
-```
-
-5. Configure Nginx with `deployment/nginx-site.conf`, set the correct `server_name`, and enable the site.
-
-6. Set file permissions for `.env` and `storage/`.
-
-7. Enable the firewall:
-
-```bash
-sudo ufw allow OpenSSH
-sudo ufw allow 'Nginx Full'
-sudo ufw enable
-```
-
-8. Open the site and complete the installer.
-
-9. Enable HTTPS, for example with Let's Encrypt:
-
-```bash
-sudo apt-get install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d example.com -d www.example.com
-```
-
-For a git-based VPS deployment, the in-app updater can be appropriate if the checkout is writable and the environment is not containerized.
-
-## First-run installer
-
-On a fresh install, the application checks whether it has already been installed by looking at:
-
-- `.env`
-- `storage/installed.lock`
-
-If installation is incomplete, requests are redirected to `/install`.
-
-The installer collects:
-
-- database host
-- database port
-- database name
-- database username
-- database password
-- application URL
-- initial admin first name
-- initial admin last name
-- initial admin email
-- initial admin password
-
-The installer then:
-
-- creates the database if permissions allow
-- connects to an existing database if it already exists
-- imports `database/schema.sql`
-- records shipped migrations from `database/migrations/`
-- creates the first admin account securely
-- writes `.env`
-- writes `storage/installed.lock`
-
-After a successful install:
-
-- `/install` is blocked
-- the initial administrator can log in
-- normal users can sign up and activate their account
-
-## Usage
-
-### Basic usage
-
-- residents sign up with their apartment number and wait for physical mailbox activation
-- only activated users can log in
-- reservations are limited by configurable booking hours and per-user weekly/monthly quotas
-- resident-facing reservation listings use privacy-safe names
-- guests can view availability without any personal details
-- staff access is permission-driven through a single primary role per user
-- default roles are `Resident`, `Manager`, and protected `Administrator`
-- admins can create custom roles, assign granular permissions, and assign those roles to users
-
-### Manual admin bootstrap
-
-The installer normally creates the first admin account. If you need a recovery path:
-
-```bash
-php scripts/bootstrap_admin.php <first_name> <last_name> <email> <apartment_number> <password>
-```
-
-Use placeholder values that fit your environment. Do not commit real credentials or personal data.
-
-## Configuration
-
-Copy `.env.example` to `.env` if you need to prepare configuration manually before or after installation.
-
-Never commit `.env` to version control.
-
-Example safe placeholders:
-
-```dotenv
-APP_URL=https://your-domain.example
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=living_room
-DB_USERNAME=your_database_user
-DB_PASSWORD=your_database_password
-ADMIN_EMAIL=admin@example.com
-
-MAILJET_ENABLED=true
-MAILJET_API_KEY=your_mailjet_api_key
-MAILJET_API_SECRET=your_mailjet_api_secret
-MAIL_FROM_EMAIL=no-reply@example.com
-MAIL_FROM_NAME="MAGNUS Reservation System"
-
-TURNSTILE_SITE_KEY=your_turnstile_site_key
-TURNSTILE_SECRET_KEY=your_turnstile_secret_key
-```
-
-Important variables:
-
-- App:
-  - `APP_NAME`
-  - `APP_ENV`
-  - `APP_DEBUG`
-  - `APP_INSTALLED`
-  - `APP_URL`
-  - `APP_TIMEZONE`
-  - `APP_LOCALE`
-  - `SESSION_NAME`
-  - `SESSION_SECURE`
-  - `APP_VERSION`
-- Database:
-  - `DB_HOST`
-  - `DB_PORT`
-  - `DB_DATABASE`
-  - `DB_USERNAME`
-  - `DB_PASSWORD`
-  - `DB_CHARSET`
-  - `DB_ROOT_PASSWORD` for the local Docker MariaDB service
-- Mail:
-  - `MAILJET_ENABLED`
-  - `MAILJET_API_KEY`
-  - `MAILJET_API_SECRET`
-  - `MAIL_FROM_EMAIL`
-  - `MAIL_FROM_NAME`
-- Anti-bot:
-  - `TURNSTILE_SITE_KEY`
-  - `TURNSTILE_SECRET_KEY`
-- Updater:
-  - `UPDATE_ENABLED`
-  - `UPDATE_REPOSITORY_URL`
-  - `UPDATE_REPOSITORY_BRANCH`
-  - `UPDATE_STRATEGY`
-  - `UPDATE_GIT_BIN`
-  - `UPDATE_CHECK_AUTOMATIC`
-  - `UPDATE_BACKUP_PATH`
-  - `UPDATE_TEMP_PATH`
-
-Uploads and branding:
-
-- site branding is stored through the settings table
-- uploaded logos and profile pictures are stored under `public/uploads/`
-- only PNG, JPG/JPEG, and WEBP uploads are accepted by the application
-- users have one primary role stored through the role/permission tables
-- default staff permissions are seeded for the `manager` role, while the protected `admin` role bypasses all checks as a super-admin safeguard
-
-## Updating the application
-
-The project includes an admin-only in-app updater available at `/admin/updates`.
-
-What it does:
-
-- shows the installed version from `VERSION`
-- checks GitHub for a newer version
-- supports git-based updates when the deployment is a writable git checkout
-- supports archive-based updates for some writable non-git deployments
-- creates a backup before applying updates
-- enables maintenance mode during update and rollback
-
-When to use it:
-
-- suitable for mutable git-based VPS deployments
-- can be suitable for some classic writable web server deployments
-
-When not to use it:
-
-- do not use it in Docker deployments
-- do not use it in Coolify deployments
-- do not use it in immutable container or platform deployments
-
-In unsupported environments, redeploy from Git instead.
-
-For manual Git-based deployments outside Docker/Coolify, pull the latest code and run the migration script:
+1. Pull the latest code:
 
 ```bash
 git pull
-php scripts/migrate.php
 ```
 
-### Updating a Docker deployment
-
-For Docker-based installs, update from GitHub and rebuild the application image instead of using the in-app updater:
+2. Rebuild and restart the stack:
 
 ```bash
-git pull
 docker compose up -d --build
+```
+
+3. If the release includes database changes, run migrations inside the app container:
+
+```bash
+docker compose exec app php scripts/migrate.php
+```
+
+4. Check logs:
+
+```bash
+docker compose logs -f app
+docker compose logs -f db
 ```
 
 Notes:
 
-- `docker compose pull` is only relevant if your compose file references prebuilt images that changed remotely. This project builds the app service from the local repository, so `docker compose up -d --build` is the important step after `git pull`.
-- To restart only the PHP/Apache container after application changes, use `docker compose up -d --build app`.
-- Database data is stored in the `mariadb_data` volume. Do not run `docker compose down -v` unless you intentionally want to remove the database and start over.
-- After updating, inspect logs with `docker compose logs -f app` and `docker compose logs -f db`.
-- If a rebuild breaks the stack, return to the previous Git commit and rebuild again, or restore from your database backup before retrying.
+- `docker compose pull` is usually not needed here because the `app` service is built from the local repository, not pulled as a prebuilt application image
+- `docker compose up -d --build app` is enough when you only need to rebuild the app container
+- keep the `mariadb_data` volume intact during updates unless you are intentionally resetting the database
 
-## Security and privacy considerations
+If an update breaks the stack:
+
+1. return to a known-good Git commit
+2. rebuild with `docker compose up -d --build`
+3. restore your database backup if the issue included destructive data changes
+
+## Privacy and Security Notes
 
 - Keep `.env` out of version control.
-- The included `.env.example` file is safe to publish and should be copied and renamed for real deployments.
-- This repository does not store personal contact information for residents or operators.
-- Any required credentials must be supplied by the deploying user in their own environment.
-- Never commit real API keys, database passwords, access tokens, or private email credentials.
-- Guest-facing availability pages intentionally hide names, apartment numbers, email addresses, and profile pictures.
-- Staff roles with the relevant permissions can access private messages and user data for operational reasons; this should be disclosed to residents in your deployment.
-- Use HTTPS in production.
-- Set `APP_DEBUG=false` in production.
-- Restrict access to writable directories and keep regular backups.
+- The included `.env.example` file is safe to publish and should be used only as a template.
+- This repository does not include real resident data, contact data, API keys, or private credentials.
+- Guest-facing reservation pages intentionally hide names, apartment numbers, email addresses, and profile pictures.
+- Staff access to user data and message oversight should be disclosed to residents in your real deployment.
+- Use HTTPS in production and set `APP_DEBUG=false`.
 
 ## Troubleshooting
 
-### Installer not loading
+### The Installer Does Not Load
 
-- make sure the document root points to `public/`
-- confirm rewrite rules are enabled
-- Apache: verify `mod_rewrite` and suitable `AllowOverride` settings
-- Nginx: verify `try_files $uri $uri/ /index.php?$query_string;`
+- make sure the stack is running: `docker compose ps`
+- check the app logs: `docker compose logs -f app`
+- confirm `http://localhost:8080` matches your published port
 
-### Database connection errors
+### Database Connection Errors
 
-- verify host, port, username, and password
-- make sure MariaDB/MySQL is running
-- in Docker, the app container should usually use `db` as the host
-- on local Linux/VPS installs, `127.0.0.1` often works better than `localhost`
+- confirm the `db` service is healthy: `docker compose ps`
+- verify the app and installer are using `db` as the database host
+- inspect database logs: `docker compose logs -f db`
 
-### Database creation fails during install
+### The App Cannot Write `.env` or Uploads
 
-- create the database manually
-- rerun the installer with the existing database
+- verify the project directory is writable on the host
+- confirm `storage/` and `public/uploads/` exist
+- rebuild the stack after permission fixes
 
-### Permission problems
+### Image Uploads Fail
 
-- ensure `.env` is writable
-- ensure `storage/` is writable
-- ensure `public/uploads/` is writable
-- verify ownership for the web server user such as `www-data`
+- only PNG, JPG/JPEG, and WEBP are accepted
+- verify PHP upload-related limits if large files fail
+- confirm `public/uploads/` is writable
 
-### Image upload problems
+### Mail Notifications Do Not Send
 
-- upload only PNG, JPG/JPEG, or WEBP files
-- verify PHP upload size limits if larger images fail
-- ensure `public/uploads/` exists and is writable
-
-### Missing PHP extensions
-
-- verify `pdo_mysql`
-- verify `zip` if you want archive-based updates
-- restart PHP-FPM or Apache after installing extensions
-
-### Mail not sending
-
-- verify Mailjet credentials
-- verify outbound HTTPS access
+- verify the Mailjet values in `.env`
 - check `storage/logs/app.log`
+- confirm the container has outbound network access
 
-### Cloudflare Turnstile problems
+### Cloudflare Turnstile Does Not Work
 
-- verify the site key and secret key
-- verify the configured domain in Cloudflare Turnstile
-- confirm the Turnstile JavaScript loads in the browser
+- verify the site key and secret in `.env`
+- confirm the configured domain matches your actual app URL
+- check browser console errors and app logs
 
-### Routing problems
+### Docker Stack Problems After an Update
 
-- verify Apache `mod_rewrite` or Nginx `try_files`
-- verify the document root points to `public/`
-
-### Docker issues
-
-- use `docker compose logs -f`
-- verify port `8080` is available
-- rebuild the containers if needed:
-
-```bash
-docker compose down
-docker compose up -d --build
-```
-
-- only use `docker compose down -v` if you intentionally want to remove the database volume
-
-### In-app updater issues
-
-- verify `UPDATE_REPOSITORY_URL`
-- verify git exists if using the git strategy
-- verify `ZipArchive` if using the archive strategy
-- verify the server can write to `storage/backups/` and `storage/updates/`
-- do not use the updater in Docker or Coolify
+- inspect logs with `docker compose logs -f`
+- rebuild from scratch with `docker compose up -d --build`
+- only use `docker compose down -v` if you intentionally want a full reset
 
 ## Contributing
 
-Contributions are welcome. Please open an issue or submit a pull request if you find a bug, want to improve documentation, or want to add functionality.
+Contributions are welcome. Open an issue or submit a pull request if you want to improve the app, documentation, or Docker workflow.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for a short contribution guide.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the short contribution guide.
 
 ## License
 

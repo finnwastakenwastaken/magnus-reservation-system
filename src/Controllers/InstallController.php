@@ -54,12 +54,14 @@ final class InstallController extends Controller
 
         return $this->view('install/index', [
             'old' => [
-                'db_host' => $_ENV['DB_HOST'] ?? '127.0.0.1',
-                'db_port' => $_ENV['DB_PORT'] ?? '3306',
-                'db_database' => $_ENV['DB_DATABASE'] ?? 'living_room',
-                'db_username' => $_ENV['DB_USERNAME'] ?? 'root',
-                'db_password' => $_ENV['DB_PASSWORD'] ?? '',
-                'app_url' => $_ENV['APP_URL'] ?? $this->guessUrl(),
+                // These defaults mirror the Docker Compose stack so the common
+                // first-run path is "open /install and keep the DB defaults".
+                'db_host' => (string) app_env('DB_HOST', 'db'),
+                'db_port' => (string) app_env('DB_PORT', '3306'),
+                'db_database' => (string) app_env('DB_DATABASE', 'living_room'),
+                'db_username' => (string) app_env('DB_USERNAME', 'living_room'),
+                'db_password' => (string) app_env('DB_PASSWORD', 'change_me_database_password'),
+                'app_url' => (string) app_env('APP_URL', $this->guessUrl()),
             ],
             'errors' => [],
         ]);

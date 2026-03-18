@@ -1,6 +1,8 @@
 .git
 .idea
 .env
+public/uploads
+storage/cache
 storage/backups
 storage/updates
 storage/logs/*.log

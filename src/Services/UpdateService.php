@@ -11,11 +11,11 @@ use PDO;
  * Coordinates the in-app update flow.
  *
  * Strategy:
- * - Prefer git-based updates for real git checkouts on mutable hosts.
+ * - Prefer git-based updates for mutable non-container installs.
  * - Fall back to GitHub archive installs for non-git mutable hosts when git is
  *   unavailable but ZipArchive/network are available.
- * - Refuse self-updates in container-centric environments like Docker/Coolify,
- *   because those should redeploy from source instead of mutating live images.
+ * - Refuse self-updates in Docker-style container deployments, because the
+ *   supported operational path is to pull source and rebuild the Compose stack.
  */
 final class UpdateService
 {
@@ -44,10 +44,10 @@ final class UpdateService
         $latest = null;
         $warning = null;
 
-        if (!$this->config['update']['enabled']) {
+        if ($this->isDockerEnvironment()) {
+            $warning = 'In-app updates are not supported for the Docker Compose deployment. Pull the latest code and rebuild the stack instead.';
+        } elseif (!$this->config['update']['enabled']) {
             $warning = 'Updates are disabled by configuration.';
-        } elseif ($this->isContainerEnvironment()) {
-            $warning = 'In-app updates are disabled in container-oriented deployments. Redeploy from GitHub instead.';
         } elseif ($repoUrl === '') {
             $warning = 'Configure UPDATE_REPOSITORY_URL before checking for updates.';
         } else {
@@ -172,7 +172,7 @@ final class UpdateService
             return $configured;
         }
 
-        if ($this->isContainerEnvironment()) {
+        if ($this->isDockerEnvironment()) {
             return 'unsupported';
         }
 
@@ -421,11 +421,9 @@ final class UpdateService
         return trim($stdout);
     }
 
-    private function isContainerEnvironment(): bool
+    private function isDockerEnvironment(): bool
     {
-        return is_file('/.dockerenv')
-            || !empty($_ENV['COOLIFY_URL'])
-            || !empty($_ENV['K_SERVICE']);
+        return is_file('/.dockerenv');
     }
 
     private function escapeCommandPart(string $value): string
