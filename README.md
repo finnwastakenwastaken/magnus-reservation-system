@@ -181,7 +181,9 @@ docker compose exec app sh
 ### Data Persistence
 
 - MariaDB data is stored in the named volume `mariadb_data`
-- application state such as generated config, logs, backups, and uploads is stored in the project working tree because the repository is mounted into the app container
+- application runtime state is stored in the named volume `app_storage`
+- uploaded logos and profile pictures are stored in the named volume `app_uploads`
+- the repository bind mount is used for the application source code only
 
 Do not run `docker compose down -v` unless you intentionally want to delete the database volume.
 
@@ -210,6 +212,8 @@ git pull
 ```bash
 docker compose up -d --build
 ```
+
+If you are applying the newer Docker setup for the first time, restart the stack once so Docker creates the writable `app_storage` and `app_uploads` volumes.
 
 3. If the release includes database changes, run migrations inside the app container:
 
@@ -264,8 +268,13 @@ If an update breaks the stack:
 
 ### The App Cannot Write `.env` or Uploads
 
-- verify the project directory is writable on the host
-- confirm `storage/` and `public/uploads/` exist
+- restart the stack so Docker creates the `app_storage` and `app_uploads` volumes:
+
+```bash
+docker compose down
+docker compose up -d --build
+```
+
 - the installer can fall back to `storage/config/app.env` if the project root is not writable
 - rebuild the stack after permission fixes
 

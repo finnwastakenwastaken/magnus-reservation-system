@@ -12,7 +12,7 @@ WORKDIR /var/www/html
 
 COPY . /var/www/html
 
-RUN mkdir -p /var/www/html/storage/backups /var/www/html/storage/cache /var/www/html/storage/logs /var/www/html/storage/updates /var/www/html/public/uploads \
+RUN mkdir -p /var/www/html/storage/backups /var/www/html/storage/cache /var/www/html/storage/config /var/www/html/storage/logs /var/www/html/storage/updates /var/www/html/public/uploads \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/public/uploads
 
 EXPOSE 80
