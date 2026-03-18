@@ -59,7 +59,7 @@ final class InstallerService
                 PDO::ATTR_EMULATE_PREPARES => false,
             ]);
         } catch (PDOException $exception) {
-            throw new \RuntimeException('Could not connect to the database server with the provided credentials.');
+            throw new \RuntimeException($this->databaseConnectionErrorMessage($exception, $input));
         }
 
         $databaseCreated = false;
@@ -219,5 +219,30 @@ final class InstallerService
                 $pdo->exec($statement);
             }
         }
+    }
+
+    /**
+     * Build a Docker-aware installer error for the most common first-run issue:
+     * MariaDB credentials changed after the persistent volume was created.
+     */
+    private function databaseConnectionErrorMessage(PDOException $exception, array $input): string
+    {
+        $message = 'Could not connect to the database server with the provided credentials.';
+        $hints = [];
+
+        if (($input['db_host'] ?? '') !== 'db') {
+            $hints[] = 'For the Docker Compose setup, the database host should usually be `db`.';
+        }
+
+        $hints[] = 'If this stack was started before with different DB_USERNAME or DB_PASSWORD values, the existing `mariadb_data` volume still uses those original MariaDB credentials.';
+        $hints[] = 'For a brand-new install you can reset the database container state with `docker compose down -v` and then `docker compose up -d --build`.';
+        $hints[] = 'If you need to keep existing data, reuse the original MariaDB credentials instead of resetting the volume.';
+
+        $driverMessage = trim($exception->getMessage());
+        if ($driverMessage !== '') {
+            $hints[] = 'Driver message: ' . $driverMessage;
+        }
+
+        return $message . ' ' . implode(' ', $hints);
     }
 }

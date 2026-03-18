@@ -258,6 +258,9 @@ If an update breaks the stack:
 - confirm the `db` service is healthy: `docker compose ps`
 - verify the app and installer are using `db` as the database host
 - inspect database logs: `docker compose logs -f db`
+- if the error says the credentials are invalid on a stack you already started before, the `mariadb_data` volume probably still contains the original MariaDB user/password
+- for a brand-new local install, resetting the DB volume with `docker compose down -v` and then `docker compose up -d --build` is the fastest recovery path
+- do not remove the volume if you need to keep existing database data; use the original credentials instead
 
 ### The App Cannot Write `.env` or Uploads
 
