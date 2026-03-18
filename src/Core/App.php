@@ -99,6 +99,10 @@ final class App
         $router->match(['GET', 'POST'], '/admin/reservations/{id}/edit', [AdminController::class, 'editReservation']);
         $router->post('/admin/reservations/{id}/cancel', [AdminController::class, 'cancelReservation']);
         $router->get('/admin/messages', [AdminController::class, 'messages']);
+        $router->get('/admin/roles', [AdminController::class, 'roles']);
+        $router->match(['GET', 'POST'], '/admin/roles/create', [AdminController::class, 'createRole']);
+        $router->match(['GET', 'POST'], '/admin/roles/{id}/edit', [AdminController::class, 'editRole']);
+        $router->post('/admin/roles/{id}/delete', [AdminController::class, 'deleteRole']);
         $router->match(['GET', 'POST'], '/admin/settings', [AdminController::class, 'settings']);
         $router->get('/admin/branding', [AdminController::class, 'branding']);
         $router->post('/admin/branding/logo', [AdminController::class, 'uploadLogo']);

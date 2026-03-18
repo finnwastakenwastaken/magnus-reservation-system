@@ -45,7 +45,7 @@ if ($installed && app_is_maintenance($config)) {
         Container::set('db', Database::connection());
         $user = Auth::user();
         $adminCanPass = $user !== null
-            && ($user['role'] ?? '') === 'admin'
+            && Auth::hasPermission(\App\Security\Permissions::UPDATES_MANAGE)
             && (str_starts_with($normalizedPath, '/admin/updates') || $normalizedPath === '/login' || str_starts_with($normalizedPath, '/assets/'));
     } catch (\Throwable) {
         $adminCanPass = false;

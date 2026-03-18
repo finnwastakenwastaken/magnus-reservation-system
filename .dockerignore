@@ -1,6 +1,8 @@
 .git
 .idea
 .env
+storage/backups
+storage/updates
 storage/logs/*.log
+storage/logs/update-status.json
 storage/installed.lock
-README.md

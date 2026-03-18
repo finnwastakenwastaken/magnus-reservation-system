@@ -1,6 +1,39 @@
 -- Baseline schema used by the installer and as a human-readable reference.
 -- The migration runner uses versioned SQL files under database/migrations/.
 
+CREATE TABLE IF NOT EXISTS permissions (
+    -- Permission catalog used by the role-based authorization system.
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(100) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    description VARCHAR(255) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uq_permissions_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS roles (
+    -- A single primary role is assigned to each user.
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    slug VARCHAR(100) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    description VARCHAR(255) DEFAULT NULL,
+    is_system TINYINT(1) NOT NULL DEFAULT 0,
+    is_super_admin TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uq_roles_slug (slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+    -- Maps granular permissions to a role. The protected super-admin role
+    -- bypasses normal permission checks even without explicit mappings.
+    role_id INT UNSIGNED NOT NULL,
+    permission_id INT UNSIGNED NOT NULL,
+    PRIMARY KEY (role_id, permission_id),
+    CONSTRAINT fk_role_permissions_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS users (
     -- Resident and administrator accounts.
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -14,7 +47,7 @@ CREATE TABLE IF NOT EXISTS users (
     show_contact_notes_to_users TINYINT(1) NOT NULL DEFAULT 0,
     password_hash VARCHAR(255) NOT NULL,
     profile_picture_path VARCHAR(255) DEFAULT NULL,
-    role ENUM('user', 'manager', 'admin') NOT NULL DEFAULT 'user',
+    role_id INT UNSIGNED NOT NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 0,
     activation_code_hash VARCHAR(255) DEFAULT NULL,
     activation_code_created_at DATETIME DEFAULT NULL,
@@ -31,8 +64,9 @@ CREATE TABLE IF NOT EXISTS users (
     UNIQUE KEY uq_users_email (email),
     UNIQUE KEY uq_users_pending_email (pending_email),
     KEY idx_users_active (is_active),
-    KEY idx_users_role (role),
-    KEY idx_users_deleted (deleted_at)
+    KEY idx_users_role_id (role_id),
+    KEY idx_users_deleted (deleted_at),
+    CONSTRAINT fk_users_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS reservations (
@@ -152,3 +186,62 @@ INSERT INTO settings (`key`, `value`, updated_at) VALUES
 ON DUPLICATE KEY UPDATE
 `value` = VALUES(`value`),
 updated_at = VALUES(updated_at);
+
+INSERT INTO permissions (code, name, description, created_at) VALUES
+('admin.access', 'Access staff dashboard', 'Open the shared staff/admin area and overview.', NOW()),
+('users.view', 'View users', 'View user lists and resident account information.', NOW()),
+('users.edit', 'Edit users', 'Update apartment assignment and other admin-managed user fields.', NOW()),
+('users.delete', 'Delete users', 'Anonymize and delete resident accounts.', NOW()),
+('users.assign_roles', 'Assign roles', 'Assign a primary role to a user.', NOW()),
+('reservations.view_all', 'View all reservations', 'View all reservation records in the staff area.', NOW()),
+('reservations.manage_all', 'Manage all reservations', 'Edit or cancel any reservation.', NOW()),
+('settings.manage', 'Manage reservation settings', 'Update booking hours and reservation limits.', NOW()),
+('messages.view_private', 'Review private messages', 'Access private message oversight for operational reasons.', NOW()),
+('branding.manage', 'Manage branding', 'Upload or reset the site logo.', NOW()),
+('updates.manage', 'Manage updates', 'Check, install, and roll back in-app updates.', NOW()),
+('roles.manage', 'Manage roles and permissions', 'Create, edit, and delete custom roles and permission mappings.', NOW())
+ON DUPLICATE KEY UPDATE
+name = VALUES(name),
+description = VALUES(description);
+
+INSERT INTO roles (slug, name, description, is_system, is_super_admin, created_at, updated_at) VALUES
+('user', 'Resident', 'Default resident account with normal self-service access.', 1, 0, NOW(), NOW()),
+('manager', 'Manager', 'Operational staff role for user, reservation, and message oversight.', 1, 0, NOW(), NOW()),
+('admin', 'Administrator', 'Protected super-admin role with unrestricted staff access.', 1, 1, NOW(), NOW())
+ON DUPLICATE KEY UPDATE
+name = VALUES(name),
+description = VALUES(description),
+updated_at = VALUES(updated_at);
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+INNER JOIN permissions p ON p.code IN (
+    'admin.access',
+    'users.view',
+    'reservations.view_all',
+    'reservations.manage_all',
+    'messages.view_private'
+)
+WHERE r.slug = 'manager'
+ON DUPLICATE KEY UPDATE role_id = role_id;
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+INNER JOIN permissions p ON p.code IN (
+    'admin.access',
+    'users.view',
+    'users.edit',
+    'users.delete',
+    'users.assign_roles',
+    'reservations.view_all',
+    'reservations.manage_all',
+    'settings.manage',
+    'messages.view_private',
+    'branding.manage',
+    'updates.manage',
+    'roles.manage'
+)
+WHERE r.slug = 'admin'
+ON DUPLICATE KEY UPDATE role_id = role_id;

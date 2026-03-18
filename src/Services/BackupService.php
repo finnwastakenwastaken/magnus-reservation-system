@@ -10,8 +10,8 @@ use App\Core\Container;
  * Creates lightweight code backups before an update is applied.
  *
  * The backup deliberately excludes runtime-only data such as logs and temp
- * update workspaces. `.env` and storage are preserved outside the replaced code
- * path so secrets and generated files survive both updates and rollbacks.
+ * update workspaces. `.env`, `storage/`, and public uploads are preserved or
+ * restored separately so secrets and generated files survive update flows.
  */
 final class BackupService
 {

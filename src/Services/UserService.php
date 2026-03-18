@@ -22,6 +22,7 @@ final class UserService
     private AuditService $audit;
     private MailService $mail;
     private ImageUploadService $images;
+    private RoleService $roles;
 
     public function __construct(?AuditService $audit = null, ?MailService $mail = null)
     {
@@ -29,6 +30,7 @@ final class UserService
         $this->audit = $audit ?? new AuditService();
         $this->mail = $mail ?? new MailService();
         $this->images = new ImageUploadService();
+        $this->roles = new RoleService();
     }
 
     /**
@@ -70,12 +72,16 @@ final class UserService
         }
 
         $activationCode = strtoupper(substr(bin2hex(random_bytes(6)), 0, 10));
+        $residentRole = $this->roles->findBySlug('user');
+        if ($residentRole === null) {
+            throw new \RuntimeException('Default resident role is missing.');
+        }
         $stmt = $this->db->prepare(
             'INSERT INTO users (
-                first_name, last_name, email, apartment_number, password_hash, role, is_active,
+                first_name, last_name, email, apartment_number, password_hash, role_id, is_active,
                 activation_code_hash, activation_code_created_at, created_at, updated_at
             ) VALUES (
-                :first_name, :last_name, :email, :apartment_number, :password_hash, :role, 0,
+                :first_name, :last_name, :email, :apartment_number, :password_hash, :role_id, 0,
                 :activation_code_hash, NOW(), NOW(), NOW()
             )'
         );
@@ -86,7 +92,7 @@ final class UserService
                 'email' => $email,
                 'apartment_number' => $apartment,
                 'password_hash' => password_hash($password, PASSWORD_DEFAULT),
-                'role' => 'user',
+                'role_id' => $residentRole['id'],
                 'activation_code_hash' => password_hash($activationCode, PASSWORD_DEFAULT),
             ]);
         } catch (PDOException $exception) {
@@ -153,27 +159,38 @@ final class UserService
 
     public function findById(int $id): ?array
     {
-        $stmt = $this->db->prepare('SELECT * FROM users WHERE id = :id LIMIT 1');
+        $stmt = $this->db->prepare($this->hydratedUserSql('u.id = :id'));
         $stmt->execute(['id' => $id]);
-        return $stmt->fetch() ?: null;
+        $user = $stmt->fetch() ?: null;
+        if ($user !== null) {
+            $user['permission_codes'] = $this->permissionCodesFromRow($user);
+        }
+
+        return $user;
     }
 
     public function findByEmail(string $email): ?array
     {
-        $stmt = $this->db->prepare('SELECT * FROM users WHERE email = :email LIMIT 1');
+        $stmt = $this->db->prepare($this->hydratedUserSql('u.email = :email'));
         $stmt->execute(['email' => strtolower($email)]);
-        return $stmt->fetch() ?: null;
+        $user = $stmt->fetch() ?: null;
+        if ($user !== null) {
+            $user['permission_codes'] = $this->permissionCodesFromRow($user);
+        }
+
+        return $user;
     }
 
     public function activeRecipients(int $excludeUserId): array
     {
         $stmt = $this->db->prepare(
-            'SELECT id, first_name, last_name
-             FROM users
-             WHERE is_active = 1
-               AND role = :role
-               AND deleted_at IS NULL
-               AND id <> :id
+            'SELECT u.id, u.first_name, u.last_name
+             FROM users u
+             INNER JOIN roles r ON r.id = u.role_id
+             WHERE u.is_active = 1
+               AND r.slug = :role
+               AND u.deleted_at IS NULL
+               AND u.id <> :id
              ORDER BY first_name, last_name'
         );
         $stmt->execute([
@@ -191,58 +208,73 @@ final class UserService
         $params = [];
 
         if ($search) {
-            $where[] = '(first_name LIKE :search OR last_name LIKE :search OR email LIKE :search OR apartment_number LIKE :search)';
+            $where[] = '(u.first_name LIKE :search OR u.last_name LIKE :search OR u.email LIKE :search OR u.apartment_number LIKE :search)';
             $params['search'] = '%' . $search . '%';
         }
         if ($isActive !== null) {
-            $where[] = 'is_active = :is_active';
+            $where[] = 'u.is_active = :is_active';
             $params['is_active'] = $isActive;
         }
-        $where[] = 'deleted_at IS NULL';
+        $where[] = 'u.deleted_at IS NULL';
 
         $sqlWhere = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-        $countStmt = $this->db->prepare("SELECT COUNT(*) FROM users {$sqlWhere}");
+        $countStmt = $this->db->prepare("SELECT COUNT(*) FROM users u INNER JOIN roles r ON r.id = u.role_id {$sqlWhere}");
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
 
-        $listStmt = $this->db->prepare("SELECT * FROM users {$sqlWhere} ORDER BY created_at DESC LIMIT {$perPage} OFFSET {$offset}");
+        $listStmt = $this->db->prepare(
+            "SELECT u.*, r.slug AS role, r.name AS role_name, r.is_super_admin
+             FROM users u
+             INNER JOIN roles r ON r.id = u.role_id
+             {$sqlWhere}
+             ORDER BY u.created_at DESC
+             LIMIT {$perPage} OFFSET {$offset}"
+        );
         $listStmt->execute($params);
 
         return ['items' => $listStmt->fetchAll(), 'total' => $total];
     }
 
-    public function updateRole(int $id, string $role, int $actorUserId): void
+    public function assignRole(int $id, int $roleId, int $actorUserId): void
     {
-        if (!in_array($role, ['user', 'manager', 'admin'], true)) {
-            throw new ValidationException(['role' => 'validation.role_invalid']);
-        }
-
         $target = $this->findById($id);
         if ($target === null) {
             return;
         }
+        $this->assertMayManageTarget($actorUserId, $target);
 
-        if ($target['role'] === 'admin' && $role !== 'admin') {
-            $adminCount = (int) $this->db->query("SELECT COUNT(*) FROM users WHERE role = 'admin' AND deleted_at IS NULL")->fetchColumn();
+        $role = $this->roles->find($roleId);
+        if ($role === null) {
+            throw new ValidationException(['role_id' => 'validation.role_invalid']);
+        }
+
+        if ((int) ($target['is_super_admin'] ?? 0) === 1 && (int) $role['is_super_admin'] !== 1) {
+            $adminCount = (int) $this->db->query(
+                'SELECT COUNT(*) FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE r.is_super_admin = 1 AND u.deleted_at IS NULL'
+            )->fetchColumn();
             if ($adminCount <= 1) {
-                throw new ValidationException(['role' => 'validation.last_admin']);
+                throw new ValidationException(['role_id' => 'validation.last_admin']);
             }
         }
 
-        $stmt = $this->db->prepare('UPDATE users SET role = :role, updated_at = NOW() WHERE id = :id');
+        $stmt = $this->db->prepare('UPDATE users SET role_id = :role_id, updated_at = NOW() WHERE id = :id');
         $stmt->execute([
-            'role' => $role,
+            'role_id' => $roleId,
             'id' => $id,
         ]);
 
-        $this->audit->log($actorUserId, 'admin.user_role_updated', 'user', (string) $id, ['role' => $role]);
+        $this->audit->log($actorUserId, 'admin.user_role_updated', 'user', (string) $id, ['role' => $role['slug']]);
     }
 
     public function deleteUser(int $id, int $actorUserId): void
     {
         $user = $this->findById($id);
-        if ($user === null || $user['role'] === 'admin') {
+        if ($user === null) {
+            return;
+        }
+        $this->assertMayManageTarget($actorUserId, $user);
+        if ((int) ($user['is_super_admin'] ?? 0) === 1) {
             return;
         }
 
@@ -313,6 +345,12 @@ final class UserService
 
     public function adminResetPassword(int $id, int $actorUserId): string
     {
+        $target = $this->findById($id);
+        if ($target === null) {
+            throw new \RuntimeException('User not found.');
+        }
+        $this->assertMayManageTarget($actorUserId, $target);
+
         $tempPassword = bin2hex(random_bytes(6));
         $stmt = $this->db->prepare('UPDATE users SET password_hash = :password_hash, updated_at = NOW() WHERE id = :id');
         $stmt->execute([
@@ -332,6 +370,12 @@ final class UserService
      */
     public function adminUpdateApartment(int $id, string $apartmentNumber, int $actorUserId): void
     {
+        $target = $this->findById($id);
+        if ($target === null) {
+            throw new \RuntimeException('User not found.');
+        }
+        $this->assertMayManageTarget($actorUserId, $target);
+
         if (!Validator::apartment($apartmentNumber)) {
             throw new ValidationException(['apartment_number' => 'validation.apartment_invalid']);
         }
@@ -358,5 +402,50 @@ final class UserService
         $stmt->execute(['email' => strtolower($email)]);
 
         return (bool) $stmt->fetchColumn();
+    }
+
+    private function assertMayManageTarget(int $actorUserId, array $target): void
+    {
+        if ((int) ($target['is_super_admin'] ?? 0) !== 1) {
+            return;
+        }
+
+        $actor = $this->findById($actorUserId);
+        if ($actor === null || (int) ($actor['is_super_admin'] ?? 0) !== 1) {
+            throw new ValidationException(['role_id' => 'validation.super_admin_protected']);
+        }
+    }
+
+    private function hydratedUserSql(string $whereSql): string
+    {
+        return
+            'SELECT u.*,
+                    r.slug AS role,
+                    r.name AS role_name,
+                    r.description AS role_description,
+                    r.is_super_admin,
+                    (
+                        SELECT GROUP_CONCAT(p.code ORDER BY p.code SEPARATOR \',\')
+                        FROM role_permissions rp
+                        INNER JOIN permissions p ON p.id = rp.permission_id
+                        WHERE rp.role_id = r.id
+                    ) AS permission_codes_csv
+             FROM users u
+             INNER JOIN roles r ON r.id = u.role_id
+             WHERE ' . $whereSql . '
+             LIMIT 1';
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function permissionCodesFromRow(array $row): array
+    {
+        $csv = trim((string) ($row['permission_codes_csv'] ?? ''));
+        if ($csv === '') {
+            return [];
+        }
+
+        return array_values(array_filter(array_map('trim', explode(',', $csv))));
     }
 }

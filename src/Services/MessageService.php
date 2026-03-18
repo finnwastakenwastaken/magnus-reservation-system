@@ -124,11 +124,12 @@ final class MessageService
     private function findUser(int $id): ?array
     {
         $stmt = $this->db->prepare(
-            'SELECT *
-             FROM users
-             WHERE id = :id
-               AND role = :role
-               AND deleted_at IS NULL
+            'SELECT u.*
+             FROM users u
+             INNER JOIN roles r ON r.id = u.role_id
+             WHERE u.id = :id
+               AND r.slug = :role
+               AND u.deleted_at IS NULL
              LIMIT 1'
         );
         $stmt->execute([

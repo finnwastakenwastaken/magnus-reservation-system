@@ -41,7 +41,7 @@ $siteLogoPath = $siteSettings['site_logo_path'] ?? '';
                     <li class="nav-item"><a class="nav-link" href="/residents"><?= htmlspecialchars($t('nav.residents'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/reservations"><?= htmlspecialchars($t('nav.reservations'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/messages/inbox"><?= htmlspecialchars($t('nav.messages'), ENT_QUOTES, 'UTF-8') ?></a></li>
-                    <?php if (in_array(($auth['role'] ?? ''), ['admin', 'manager'], true)): ?>
+                    <?php if (\App\Core\Auth::hasPermission(\App\Security\Permissions::ADMIN_ACCESS)): ?>
                         <li class="nav-item"><a class="nav-link" href="/admin"><?= htmlspecialchars($t('nav.admin'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <?php endif; ?>
                 <?php endif; ?>

@@ -8,16 +8,26 @@
                     <p class="text-secondary mb-0"><?= htmlspecialchars($translator->get('admin.current_version', ['version' => $appVersion]), ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="/admin/messages" class="btn btn-outline-primary"><?= htmlspecialchars($translator->get('admin.messages_oversight'), ENT_QUOTES, 'UTF-8') ?></a>
-                    <?php if (!empty($canManageSystem)): ?>
+                    <?php if (!empty($canViewMessages)): ?>
+                        <a href="/admin/messages" class="btn btn-outline-primary"><?= htmlspecialchars($translator->get('admin.messages_oversight'), ENT_QUOTES, 'UTF-8') ?></a>
+                    <?php endif; ?>
+                    <?php if (!empty($canManageRoles)): ?>
+                        <a href="/admin/roles" class="btn btn-outline-primary"><?= htmlspecialchars($translator->get('admin.roles'), ENT_QUOTES, 'UTF-8') ?></a>
+                    <?php endif; ?>
+                    <?php if (!empty($canManageSettings)): ?>
                         <a href="/admin/settings" class="btn btn-outline-primary"><?= htmlspecialchars($translator->get('admin.settings'), ENT_QUOTES, 'UTF-8') ?></a>
+                    <?php endif; ?>
+                    <?php if (!empty($canManageBranding)): ?>
                         <a href="/admin/branding" class="btn btn-outline-primary"><?= htmlspecialchars($translator->get('admin.branding'), ENT_QUOTES, 'UTF-8') ?></a>
+                    <?php endif; ?>
+                    <?php if (!empty($canManageUpdates)): ?>
                         <a href="/admin/updates" class="btn btn-outline-primary"><?= htmlspecialchars($translator->get('admin.updates'), ENT_QUOTES, 'UTF-8') ?></a>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
+    <?php if (!empty($canViewUsers)): ?>
     <div class="col-md-6">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-body">
@@ -39,6 +49,8 @@
             </div>
         </div>
     </div>
+    <?php endif; ?>
+    <?php if (!empty($canViewReservations)): ?>
     <div class="col-md-6">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-body">
@@ -60,4 +72,5 @@
             </div>
         </div>
     </div>
+    <?php endif; ?>
 </div>

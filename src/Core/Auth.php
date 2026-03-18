@@ -9,11 +9,15 @@ use App\Models\User;
 /**
  * Session-based authentication helper.
  *
- * The class centralizes login/logout and authorization checks so controllers do
- * not have to duplicate security-sensitive session handling.
+ * The class centralizes login/logout and both role- and permission-based
+ * authorization checks so controllers do not have to duplicate
+ * security-sensitive session handling.
  */
 final class Auth
 {
+    private static ?array $resolvedUser = null;
+    private static bool $userLoaded = false;
+
     /**
      * Persist the authenticated user ID and rotate the session identifier to
      * prevent session fixation after login.
@@ -22,6 +26,8 @@ final class Auth
     {
         session_regenerate_id(true);
         $_SESSION['user_id'] = (int) $user['id'];
+        self::$resolvedUser = $user;
+        self::$userLoaded = true;
     }
 
     public static function logout(): void
@@ -29,6 +35,8 @@ final class Auth
         // Rotating again on logout reduces the chance of session reuse.
         unset($_SESSION['user_id']);
         session_regenerate_id(true);
+        self::$resolvedUser = null;
+        self::$userLoaded = false;
     }
 
     /**
@@ -39,11 +47,18 @@ final class Auth
      */
     public static function user(): ?array
     {
+        if (self::$userLoaded) {
+            return self::$resolvedUser;
+        }
+
         if (empty($_SESSION['user_id'])) {
             return null;
         }
 
-        return (new User())->findById((int) $_SESSION['user_id']);
+        self::$resolvedUser = (new User())->findById((int) $_SESSION['user_id']);
+        self::$userLoaded = true;
+
+        return self::$resolvedUser;
     }
 
     public static function check(): bool
@@ -51,21 +66,50 @@ final class Auth
         return self::user() !== null;
     }
 
-    public static function isAdmin(): bool
-    {
-        return self::hasRole('admin');
-    }
-
-    public static function hasRole(string|array $roles): bool
+    public static function hasPermission(string|array $permissions): bool
     {
         $user = self::user();
         if ($user === null) {
             return false;
         }
 
-        $roles = is_array($roles) ? $roles : [$roles];
+        if ((int) ($user['is_super_admin'] ?? 0) === 1) {
+            return true;
+        }
 
-        return in_array($user['role'], $roles, true);
+        $permissions = is_array($permissions) ? $permissions : [$permissions];
+        $granted = self::permissionCodes();
+
+        foreach ($permissions as $permission) {
+            if (in_array($permission, $granted, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function permissionCodes(): array
+    {
+        $user = self::user();
+        if ($user === null) {
+            return [];
+        }
+
+        $codes = $user['permission_codes'] ?? [];
+        if (is_array($codes)) {
+            return $codes;
+        }
+
+        $csv = trim((string) ($user['permission_codes_csv'] ?? ''));
+        if ($csv === '') {
+            return [];
+        }
+
+        return array_values(array_filter(array_map('trim', explode(',', $csv))));
     }
 
     public static function requireUser(): void
@@ -75,20 +119,9 @@ final class Auth
         }
     }
 
-    public static function requireAdmin(): void
+    public static function requirePermission(string|array $permissions): void
     {
-        self::requireRoles('admin');
-    }
-
-    /**
-     * Enforce one or more allowed roles server-side.
-     *
-     * The UI may hide links, but these checks are the authoritative guard
-     * against privilege escalation through crafted requests.
-     */
-    public static function requireRoles(string|array $roles): void
-    {
-        if (!self::hasRole($roles)) {
+        if (!self::hasPermission($permissions)) {
             throw new HttpException('Forbidden', 403);
         }
     }

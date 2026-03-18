@@ -93,14 +93,21 @@ final class InstallerService
             $this->runSchema($pdo, BASE_PATH . '/database/schema.sql');
             (new MigrationService($pdo))->markAllAsApplied();
 
-            $adminStmt = $pdo->prepare('SELECT id FROM users WHERE role = :role ORDER BY id ASC LIMIT 1');
-            $adminStmt->execute(['role' => 'admin']);
+            $adminRoleStmt = $pdo->prepare('SELECT id FROM roles WHERE slug = :slug LIMIT 1');
+            $adminRoleStmt->execute(['slug' => 'admin']);
+            $adminRoleId = $adminRoleStmt->fetchColumn();
+            if ($adminRoleId === false) {
+                throw new \RuntimeException('The protected admin role is missing from the installed schema.');
+            }
+
+            $adminStmt = $pdo->prepare('SELECT id FROM users WHERE role_id = :role_id ORDER BY id ASC LIMIT 1');
+            $adminStmt->execute(['role_id' => $adminRoleId]);
             if (!$adminStmt->fetchColumn()) {
                 $insertAdmin = $pdo->prepare(
                     'INSERT INTO users (
-                        first_name, last_name, email, apartment_number, password_hash, role, is_active, activated_at, created_at, updated_at
+                        first_name, last_name, email, apartment_number, password_hash, role_id, is_active, activated_at, created_at, updated_at
                      ) VALUES (
-                        :first_name, :last_name, :email, :apartment_number, :password_hash, :role, 1, NOW(), NOW(), NOW()
+                        :first_name, :last_name, :email, :apartment_number, :password_hash, :role_id, 1, NOW(), NOW(), NOW()
                      )'
                 );
                 $insertAdmin->execute([
@@ -109,7 +116,7 @@ final class InstallerService
                     'email' => strtolower(trim((string) $input['admin_email'])),
                     'apartment_number' => 'ADMIN',
                     'password_hash' => password_hash((string) $input['admin_password'], PASSWORD_DEFAULT),
-                    'role' => 'admin',
+                    'role_id' => $adminRoleId,
                 ]);
             }
 

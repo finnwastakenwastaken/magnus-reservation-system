@@ -11,10 +11,12 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\ValidationException;
 use App\Core\Validator;
+use App\Security\Permissions;
 use App\Services\AuditService;
 use App\Services\BrandingService;
 use App\Services\MessageService;
 use App\Services\ReservationService;
+use App\Services\RoleService;
 use App\Services\SettingsService;
 use App\Services\UpdateService;
 use App\Services\UserService;
@@ -22,30 +24,35 @@ use App\Services\UserService;
 /**
  * Staff control surface.
  *
- * Admins retain all existing system privileges. Managers get a narrower
- * operational scope focused on user visibility, message oversight, and
- * reservation oversight without access to installer/updater/settings/branding
- * controls.
+ * Administrators can define custom staff roles, but all enforcement is still
+ * handled server-side through granular permission checks. The protected admin
+ * role keeps full access as a super-admin safeguard.
  */
 final class AdminController extends Controller
 {
     public function index(Request $request, array $params = []): Response
     {
-        Auth::requireRoles(['admin', 'manager']);
+        Auth::requirePermission(Permissions::ADMIN_ACCESS);
         $userService = new UserService();
         $reservationService = new ReservationService();
 
         return $this->view('admin/index', [
-            'pendingUsers' => $userService->paginatedUsers(1, 5, null, 0)['items'],
-            'reservations' => $reservationService->paginatedAll(1, 5)['items'],
+            'pendingUsers' => Auth::hasPermission(Permissions::USERS_VIEW) ? $userService->paginatedUsers(1, 5, null, 0)['items'] : [],
+            'reservations' => Auth::hasPermission(Permissions::RESERVATIONS_VIEW_ALL) ? $reservationService->paginatedAll(1, 5)['items'] : [],
             'appVersion' => \App\Core\Container::get('config')['app']['version'],
-            'canManageSystem' => Auth::isAdmin(),
+            'canViewUsers' => Auth::hasPermission(Permissions::USERS_VIEW),
+            'canViewReservations' => Auth::hasPermission(Permissions::RESERVATIONS_VIEW_ALL),
+            'canViewMessages' => Auth::hasPermission(Permissions::MESSAGES_VIEW_PRIVATE),
+            'canManageRoles' => Auth::hasPermission(Permissions::ROLES_MANAGE),
+            'canManageSettings' => Auth::hasPermission(Permissions::SETTINGS_MANAGE),
+            'canManageBranding' => Auth::hasPermission(Permissions::BRANDING_MANAGE),
+            'canManageUpdates' => Auth::hasPermission(Permissions::UPDATES_MANAGE),
         ]);
     }
 
     public function users(Request $request, array $params = []): Response
     {
-        Auth::requireRoles(['admin', 'manager']);
+        Auth::requirePermission(Permissions::USERS_VIEW);
         $page = max(1, (int) $request->input('page', 1));
         $search = trim((string) $request->input('search', ''));
         $status = $request->input('status');
@@ -59,20 +66,24 @@ final class AdminController extends Controller
             'status' => $status,
             'page' => $page,
             'perPage' => 10,
-            'canEditUsers' => Auth::isAdmin(),
+            'roles' => (new RoleService())->assignableRoles(),
+            'canEditUsers' => Auth::hasPermission(Permissions::USERS_EDIT),
+            'canAssignRoles' => Auth::hasPermission(Permissions::USERS_ASSIGN_ROLES),
+            'canDeleteUsers' => Auth::hasPermission(Permissions::USERS_DELETE),
+            'currentUserIsSuperAdmin' => (int) (Auth::user()['is_super_admin'] ?? 0) === 1,
         ]);
     }
 
     public function updateRole(Request $request, array $params): Response
     {
-        Auth::requireAdmin();
+        Auth::requirePermission(Permissions::USERS_ASSIGN_ROLES);
         Validator::requireCsrf($request);
 
         try {
-            (new UserService())->updateRole((int) $params['id'], (string) $request->input('role'), (int) Auth::user()['id']);
-            Flash::add('success', \App\Core\Container::get('translator')->get('admin.role_updated'));
+            (new UserService())->assignRole((int) $params['id'], (int) $request->input('role_id'), (int) Auth::user()['id']);
+            Flash::add('success', \App\Core\Container::get('translator')->get('admin.user_role_updated'));
         } catch (ValidationException $exception) {
-            Flash::add('danger', \App\Core\Container::get('translator')->get($exception->errors()['role'] ?? 'validation.role_invalid'));
+            Flash::add('danger', \App\Core\Container::get('translator')->get($exception->errors()['role_id'] ?? $exception->errors()['role'] ?? 'validation.role_invalid'));
         }
 
         return $this->redirect('/admin/users');
@@ -80,27 +91,39 @@ final class AdminController extends Controller
 
     public function deleteUser(Request $request, array $params): Response
     {
-        Auth::requireAdmin();
+        Auth::requirePermission(Permissions::USERS_DELETE);
         Validator::requireCsrf($request);
-        (new UserService())->deleteUser((int) $params['id'], (int) Auth::user()['id']);
-        Flash::add('success', \App\Core\Container::get('translator')->get('admin.user_deleted'));
+        $translator = \App\Core\Container::get('translator');
+
+        try {
+            (new UserService())->deleteUser((int) $params['id'], (int) Auth::user()['id']);
+            Flash::add('success', $translator->get('admin.user_deleted'));
+        } catch (ValidationException $exception) {
+            Flash::add('danger', $translator->get($exception->errors()['role_id'] ?? 'validation.super_admin_protected'));
+        }
 
         return $this->redirect('/admin/users');
     }
 
     public function resetPassword(Request $request, array $params): Response
     {
-        Auth::requireAdmin();
+        Auth::requirePermission(Permissions::USERS_EDIT);
         Validator::requireCsrf($request);
-        $tempPassword = (new UserService())->adminResetPassword((int) $params['id'], (int) Auth::user()['id']);
-        Flash::add('warning', \App\Core\Container::get('translator')->get('admin.password_reset_done', ['password' => $tempPassword]));
+        $translator = \App\Core\Container::get('translator');
+
+        try {
+            $tempPassword = (new UserService())->adminResetPassword((int) $params['id'], (int) Auth::user()['id']);
+            Flash::add('warning', $translator->get('admin.password_reset_done', ['password' => $tempPassword]));
+        } catch (ValidationException $exception) {
+            Flash::add('danger', $translator->get($exception->errors()['role_id'] ?? 'validation.super_admin_protected'));
+        }
 
         return $this->redirect('/admin/users');
     }
 
     public function updateApartment(Request $request, array $params): Response
     {
-        Auth::requireAdmin();
+        Auth::requirePermission(Permissions::USERS_EDIT);
         Validator::requireCsrf($request);
 
         try {
@@ -108,7 +131,7 @@ final class AdminController extends Controller
             Flash::add('success', \App\Core\Container::get('translator')->get('admin.apartment_updated'));
         } catch (\Throwable $exception) {
             Flash::add('danger', $exception instanceof ValidationException
-                ? \App\Core\Container::get('translator')->get($exception->errors()['apartment_number'] ?? 'validation.apartment_invalid')
+                ? \App\Core\Container::get('translator')->get($exception->errors()['apartment_number'] ?? $exception->errors()['role_id'] ?? 'validation.apartment_invalid')
                 : $exception->getMessage());
         }
 
@@ -117,19 +140,20 @@ final class AdminController extends Controller
 
     public function reservations(Request $request, array $params = []): Response
     {
-        Auth::requireRoles(['admin', 'manager']);
+        Auth::requirePermission(Permissions::RESERVATIONS_VIEW_ALL);
         $page = max(1, (int) $request->input('page', 1));
         $data = (new ReservationService())->paginatedAll($page, 15);
 
         return $this->view('admin/reservations', $data + [
             'page' => $page,
             'perPage' => 15,
+            'canManageReservations' => Auth::hasPermission(Permissions::RESERVATIONS_MANAGE_ALL),
         ]);
     }
 
     public function editReservation(Request $request, array $params): Response
     {
-        Auth::requireRoles(['admin', 'manager']);
+        Auth::requirePermission(Permissions::RESERVATIONS_MANAGE_ALL);
         $service = new ReservationService();
         $translator = \App\Core\Container::get('translator');
         $reservation = $service->findDetailedById((int) $params['id']);
@@ -171,7 +195,7 @@ final class AdminController extends Controller
 
     public function cancelReservation(Request $request, array $params): Response
     {
-        Auth::requireRoles(['admin', 'manager']);
+        Auth::requirePermission(Permissions::RESERVATIONS_MANAGE_ALL);
         Validator::requireCsrf($request);
         (new ReservationService())->cancelByStaff((int) $params['id'], Auth::user(), \App\Core\Container::get('translator')->locale());
         Flash::add('success', \App\Core\Container::get('translator')->get('reservation.cancelled'));
@@ -181,7 +205,7 @@ final class AdminController extends Controller
 
     public function messages(Request $request, array $params = []): Response
     {
-        Auth::requireRoles(['admin', 'manager']);
+        Auth::requirePermission(Permissions::MESSAGES_VIEW_PRIVATE);
         $page = max(1, (int) $request->input('page', 1));
         $data = (new MessageService())->paginatedAll($page, 15);
         (new AuditService())->log((int) Auth::user()['id'], 'staff.messages_oversight_viewed', 'message', 'list', ['page' => $page]);
@@ -194,7 +218,7 @@ final class AdminController extends Controller
 
     public function settings(Request $request, array $params = []): Response
     {
-        Auth::requireAdmin();
+        Auth::requirePermission(Permissions::SETTINGS_MANAGE);
         $settings = new SettingsService();
         $translator = \App\Core\Container::get('translator');
 
@@ -228,7 +252,7 @@ final class AdminController extends Controller
 
     public function branding(Request $request, array $params = []): Response
     {
-        Auth::requireAdmin();
+        Auth::requirePermission(Permissions::BRANDING_MANAGE);
 
         return $this->view('admin/branding', [
             'logoPath' => (new BrandingService())->currentLogoPath(),
@@ -238,7 +262,7 @@ final class AdminController extends Controller
 
     public function uploadLogo(Request $request, array $params = []): Response
     {
-        Auth::requireAdmin();
+        Auth::requirePermission(Permissions::BRANDING_MANAGE);
         Validator::requireCsrf($request);
         $translator = \App\Core\Container::get('translator');
         $branding = new BrandingService();
@@ -257,7 +281,7 @@ final class AdminController extends Controller
 
     public function resetLogo(Request $request, array $params = []): Response
     {
-        Auth::requireAdmin();
+        Auth::requirePermission(Permissions::BRANDING_MANAGE);
         Validator::requireCsrf($request);
         (new BrandingService())->resetLogo((int) Auth::user()['id']);
         Flash::add('success', \App\Core\Container::get('translator')->get('admin.logo_reset'));
@@ -267,7 +291,7 @@ final class AdminController extends Controller
 
     public function updates(Request $request, array $params = []): Response
     {
-        Auth::requireAdmin();
+        Auth::requirePermission(Permissions::UPDATES_MANAGE);
 
         return $this->view('admin/updates', [
             'update' => (new UpdateService())->status(),
@@ -276,7 +300,7 @@ final class AdminController extends Controller
 
     public function checkUpdates(Request $request, array $params = []): Response
     {
-        Auth::requireAdmin();
+        Auth::requirePermission(Permissions::UPDATES_MANAGE);
         Validator::requireCsrf($request);
         Flash::add('info', \App\Core\Container::get('translator')->get('admin.updates_checked'));
 
@@ -285,7 +309,7 @@ final class AdminController extends Controller
 
     public function installUpdate(Request $request, array $params = []): Response
     {
-        Auth::requireAdmin();
+        Auth::requirePermission(Permissions::UPDATES_MANAGE);
         Validator::requireCsrf($request);
 
         try {
@@ -300,7 +324,7 @@ final class AdminController extends Controller
 
     public function rollbackUpdate(Request $request, array $params = []): Response
     {
-        Auth::requireAdmin();
+        Auth::requirePermission(Permissions::UPDATES_MANAGE);
         Validator::requireCsrf($request);
 
         try {
@@ -311,5 +335,102 @@ final class AdminController extends Controller
         }
 
         return $this->redirect('/admin/updates');
+    }
+
+    public function roles(Request $request, array $params = []): Response
+    {
+        Auth::requirePermission(Permissions::ROLES_MANAGE);
+
+        return $this->view('admin/roles', [
+            'roles' => (new RoleService())->allWithCounts(),
+            'currentUserIsSuperAdmin' => (int) (Auth::user()['is_super_admin'] ?? 0) === 1,
+        ]);
+    }
+
+    public function createRole(Request $request, array $params = []): Response
+    {
+        Auth::requirePermission(Permissions::ROLES_MANAGE);
+        $service = new RoleService();
+
+        if ($request->method() === 'POST') {
+            Validator::requireCsrf($request);
+            try {
+                $service->create($request->all(), (int) Auth::user()['id']);
+                Flash::add('success', \App\Core\Container::get('translator')->get('admin.role_created'));
+                return $this->redirect('/admin/roles');
+            } catch (ValidationException $exception) {
+                return $this->view('admin/role-form', [
+                    'role' => null,
+                    'permissions' => $service->permissionCatalog(),
+                    'errors' => $exception->errors(),
+                    'old' => $request->all(),
+                ]);
+            }
+        }
+
+        return $this->view('admin/role-form', [
+            'role' => null,
+            'permissions' => $service->permissionCatalog(),
+            'errors' => [],
+            'old' => [],
+        ]);
+    }
+
+    public function editRole(Request $request, array $params): Response
+    {
+        Auth::requirePermission(Permissions::ROLES_MANAGE);
+        $service = new RoleService();
+        $role = $service->find((int) $params['id']);
+        if ($role === null) {
+            Flash::add('danger', \App\Core\Container::get('translator')->get('admin.role_not_found'));
+            return $this->redirect('/admin/roles');
+        }
+        if ((int) ($role['is_super_admin'] ?? 0) === 1 && (int) (Auth::user()['is_super_admin'] ?? 0) !== 1) {
+            Flash::add('danger', \App\Core\Container::get('translator')->get('validation.super_admin_protected'));
+            return $this->redirect('/admin/roles');
+        }
+
+        if ($request->method() === 'POST') {
+            Validator::requireCsrf($request);
+            try {
+                $service->update((int) $params['id'], $request->all(), (int) Auth::user()['id']);
+                Flash::add('success', \App\Core\Container::get('translator')->get('admin.role_updated'));
+                return $this->redirect('/admin/roles');
+            } catch (ValidationException $exception) {
+                return $this->view('admin/role-form', [
+                    'role' => $role,
+                    'permissions' => $service->permissionCatalog(),
+                    'errors' => $exception->errors(),
+                    'old' => $request->all(),
+                ]);
+            }
+        }
+
+        return $this->view('admin/role-form', [
+            'role' => $role,
+            'permissions' => $service->permissionCatalog(),
+            'errors' => [],
+            'old' => [
+                'name' => $role['name'],
+                'description' => $role['description'],
+                'permissions' => $role['permissions'] ?? [],
+            ],
+        ]);
+    }
+
+    public function deleteRole(Request $request, array $params): Response
+    {
+        Auth::requirePermission(Permissions::ROLES_MANAGE);
+        Validator::requireCsrf($request);
+
+        try {
+            (new RoleService())->delete((int) $params['id'], (int) Auth::user()['id']);
+            Flash::add('success', \App\Core\Container::get('translator')->get('admin.role_deleted'));
+        } catch (ValidationException $exception) {
+            $errorKey = $exception->errors()['name'] ?? 'validation.role_invalid';
+            Flash::add('danger', \App\Core\Container::get('translator')->get($errorKey));
+        }
+
+        return $this->redirect('/admin/roles');
     }
 }

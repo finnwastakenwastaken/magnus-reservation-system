@@ -72,8 +72,9 @@ final class UpdateService
 
     public function installUpdate(array $actor): array
     {
-        // Every update is explicitly admin-triggered. The controller is already
-        // admin-only; this method assumes the caller has been authorized.
+        // Every update is explicitly staff-triggered through the protected
+        // updates permission. The controller has already performed the
+        // authoritative authorization check.
         $status = $this->status();
         if (!$status['supported']) {
             throw new \RuntimeException($status['warning'] ?? 'Updates are not supported in this environment.');
@@ -337,7 +338,8 @@ final class UpdateService
     {
         // Secrets and writable runtime data are intentionally preserved across
         // archive-based updates; only versioned application files are replaced.
-        $preserve = ['.env', 'storage', '.git', '.idea'];
+        // Public uploads stay intact so logos and profile pictures survive.
+        $preserve = ['.env', 'storage', 'public/uploads', '.git', '.idea'];
         $this->files->deleteRecursive(BASE_PATH, $preserve);
         $this->files->copyRecursive($sourceRoot, BASE_PATH, $preserve);
     }

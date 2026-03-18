@@ -1,6 +1,6 @@
 # MAGNUS Reservation System
 
-MAGNUS Reservation System is a plain PHP application for managing reservations for a shared living room in an apartment complex. It includes resident signup and activation, calendar-based reservations, internal messaging, bilingual Dutch/English support, role-based staff access, branding controls, a first-run installer, and a conservative in-app updater for supported deployments.
+MAGNUS Reservation System is a plain PHP application for managing reservations for a shared living room in an apartment complex. It includes resident signup and activation, calendar-based reservations, internal messaging, bilingual Dutch/English support, a database-backed staff role/permission system, branding controls, a first-run installer, and a conservative in-app updater for supported deployments.
 
 ## Overview
 
@@ -21,9 +21,10 @@ Key goals:
 - Shared-room reservation calendar with overlap protection
 - Configurable booking limits and opening hours
 - Internal resident messaging with optional Mailjet notifications
-- Manager role for operational oversight of users, reservations, and messages
+- Database-backed roles and permissions with protected super-admin access
+- Default resident, manager, and admin roles plus custom role management
 - Bilingual interface in English and Dutch
-- Admin panel for users, reservations, settings, branding, and updates
+- Admin/staff panel for users, reservations, roles, settings, branding, and updates
 - First-run installer that writes `.env` and creates the initial admin account
 - In-app updater for supported mutable deployments
 - Public availability overview for guests with no personal details
@@ -40,8 +41,8 @@ Key goals:
 
 - Public guests can view room availability without seeing resident names or contact details.
 - Residents can manage their own privacy settings, profile picture, password, and verified email changes.
-- Managers can review users, private messages, and reservations for operational reasons.
-- Administrators can additionally manage booking settings, site branding, and application updates.
+- Staff permissions are role-driven: managers and custom roles can be granted operational access without receiving full administrator rights.
+- Protected administrators can additionally manage booking settings, roles/permissions, site branding, and application updates.
 - Staff-triggered reservation changes and cancellations create user-visible notifications and optional email alerts.
 
 ## Requirements / Prerequisites
@@ -106,12 +107,6 @@ You can also download the repository ZIP from GitHub and extract it manually.
 
 ### Docker
 
-This repository includes:
-
-- `Dockerfile`
-- `docker-compose.yml`
-- `docker/apache-vhost.conf`
-
 1. Build and start the stack:
 
 ```bash
@@ -134,13 +129,15 @@ http://localhost:8080
 
 4. Complete the installer at `/install`.
 
-Default example Docker database values from `docker-compose.yml`:
+Compose defaults use placeholder-style values and can be overridden through your local shell or a Compose `.env` file:
 
 - host: `db`
 - port: `3306`
-- database: `living_room`
-- username: `living_room`
-- password: `your_database_password`
+- database: `${DB_DATABASE:-living_room}`
+- username: `${DB_USERNAME:-living_room}`
+- password: `${DB_PASSWORD:-change_me_database_password}`
+
+Use the same database values in the web installer unless you intentionally changed the Compose variables before starting the stack.
 
 Useful commands:
 
@@ -153,7 +150,8 @@ docker compose up -d --build
 Persistence notes:
 
 - database data is stored in the `mariadb_data` volume
-- application runtime state is stored in the project directory, including `.env` and `storage/`
+- application runtime state is stored in the project directory, including `.env`, `storage/`, and `public/uploads/`
+- the database service is intentionally not exposed on a host port by default
 
 Do not use the in-app updater in Docker deployments. Rebuild and redeploy from Git instead.
 
@@ -347,15 +345,16 @@ After a successful install:
 
 ## Usage
 
-### Basic usage notes
+### Basic usage
 
 - residents sign up with their apartment number and wait for physical mailbox activation
 - only activated users can log in
 - reservations are limited by configurable booking hours and per-user weekly/monthly quotas
 - resident-facing reservation listings use privacy-safe names
 - guests can view availability without any personal details
-- managers can oversee users, messages, and reservations
-- admins manage users, reservations, settings, branding, and updates
+- staff access is permission-driven through a single primary role per user
+- default roles are `Resident`, `Manager`, and protected `Administrator`
+- admins can create custom roles, assign granular permissions, and assign those roles to users
 
 ### Manual admin bootstrap
 
@@ -370,6 +369,8 @@ Use placeholder values that fit your environment. Do not commit real credentials
 ## Configuration
 
 Copy `.env.example` to `.env` if you need to prepare configuration manually before or after installation.
+
+Never commit `.env` to version control.
 
 Example safe placeholders:
 
@@ -412,6 +413,7 @@ Important variables:
   - `DB_USERNAME`
   - `DB_PASSWORD`
   - `DB_CHARSET`
+  - `DB_ROOT_PASSWORD` for the local Docker MariaDB service
 - Mail:
   - `MAILJET_ENABLED`
   - `MAILJET_API_KEY`
@@ -436,6 +438,8 @@ Uploads and branding:
 - site branding is stored through the settings table
 - uploaded logos and profile pictures are stored under `public/uploads/`
 - only PNG, JPG/JPEG, and WEBP uploads are accepted by the application
+- users have one primary role stored through the role/permission tables
+- default staff permissions are seeded for the `manager` role, while the protected `admin` role bypasses all checks as a super-admin safeguard
 
 ## Updating the application
 
@@ -463,6 +467,30 @@ When not to use it:
 
 In unsupported environments, redeploy from Git instead.
 
+For manual Git-based deployments outside Docker/Coolify, pull the latest code and run the migration script:
+
+```bash
+git pull
+php scripts/migrate.php
+```
+
+### Updating a Docker deployment
+
+For Docker-based installs, update from GitHub and rebuild the application image instead of using the in-app updater:
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+Notes:
+
+- `docker compose pull` is only relevant if your compose file references prebuilt images that changed remotely. This project builds the app service from the local repository, so `docker compose up -d --build` is the important step after `git pull`.
+- To restart only the PHP/Apache container after application changes, use `docker compose up -d --build app`.
+- Database data is stored in the `mariadb_data` volume. Do not run `docker compose down -v` unless you intentionally want to remove the database and start over.
+- After updating, inspect logs with `docker compose logs -f app` and `docker compose logs -f db`.
+- If a rebuild breaks the stack, return to the previous Git commit and rebuild again, or restore from your database backup before retrying.
+
 ## Security and privacy considerations
 
 - Keep `.env` out of version control.
@@ -471,7 +499,7 @@ In unsupported environments, redeploy from Git instead.
 - Any required credentials must be supplied by the deploying user in their own environment.
 - Never commit real API keys, database passwords, access tokens, or private email credentials.
 - Guest-facing availability pages intentionally hide names, apartment numbers, email addresses, and profile pictures.
-- Managers and administrators can access private messages and user data for operational reasons; this should be disclosed to residents in your deployment.
+- Staff roles with the relevant permissions can access private messages and user data for operational reasons; this should be disclosed to residents in your deployment.
 - Use HTTPS in production.
 - Set `APP_DEBUG=false` in production.
 - Restrict access to writable directories and keep regular backups.
@@ -540,9 +568,11 @@ In unsupported environments, redeploy from Git instead.
 - rebuild the containers if needed:
 
 ```bash
-docker compose down -v
+docker compose down
 docker compose up -d --build
 ```
+
+- only use `docker compose down -v` if you intentionally want to remove the database volume
 
 ### In-app updater issues
 

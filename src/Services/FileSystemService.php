@@ -19,7 +19,7 @@ final class FileSystemService
         }
     }
 
-    public function copyRecursive(string $source, string $destination, array $exclude = []): void
+    public function copyRecursive(string $source, string $destination, array $exclude = [], string $relativePath = ''): void
     {
         $this->ensureDirectory($destination);
 
@@ -29,15 +29,20 @@ final class FileSystemService
         }
 
         foreach ($items as $item) {
-            if ($item === '.' || $item === '..' || in_array($item, $exclude, true)) {
+            if ($item === '.' || $item === '..') {
                 continue;
             }
 
             $from = $source . DIRECTORY_SEPARATOR . $item;
             $to = $destination . DIRECTORY_SEPARATOR . $item;
+            $itemRelativePath = ltrim($relativePath . '/' . $item, '/');
+
+            if ($this->matchesPreservePath($itemRelativePath, $exclude)) {
+                continue;
+            }
 
             if (is_dir($from)) {
-                $this->copyRecursive($from, $to, $exclude);
+                $this->copyRecursive($from, $to, $exclude, $itemRelativePath);
                 continue;
             }
 
@@ -47,7 +52,7 @@ final class FileSystemService
         }
     }
 
-    public function deleteRecursive(string $path, array $preserveTopLevel = []): void
+    public function deleteRecursive(string $path, array $preservePaths = [], string $relativePath = ''): void
     {
         if (!file_exists($path)) {
             return;
@@ -59,13 +64,18 @@ final class FileSystemService
         }
 
         foreach ($items as $item) {
-            if ($item === '.' || $item === '..' || in_array($item, $preserveTopLevel, true)) {
+            if ($item === '.' || $item === '..') {
                 continue;
             }
 
             $target = $path . DIRECTORY_SEPARATOR . $item;
+            $itemRelativePath = ltrim($relativePath . '/' . $item, '/');
+            if ($this->matchesPreservePath($itemRelativePath, $preservePaths)) {
+                continue;
+            }
+
             if (is_dir($target)) {
-                $this->deleteRecursive($target);
+                $this->deleteRecursive($target, $preservePaths, $itemRelativePath);
                 if (!rmdir($target)) {
                     throw new \RuntimeException("Unable to remove directory: {$target}");
                 }
@@ -83,5 +93,18 @@ final class FileSystemService
         if (is_file($path)) {
             @unlink($path);
         }
+    }
+
+    private function matchesPreservePath(string $relativePath, array $preservePaths): bool
+    {
+        $normalized = str_replace('\\', '/', trim($relativePath, '/'));
+        foreach ($preservePaths as $preservePath) {
+            $preserveNormalized = str_replace('\\', '/', trim((string) $preservePath, '/'));
+            if ($normalized === $preserveNormalized || str_starts_with($normalized . '/', $preserveNormalized . '/')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

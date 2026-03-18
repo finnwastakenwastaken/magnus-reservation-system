@@ -381,12 +381,13 @@ final class PrivacyService
     public function visibleResidents(int $viewerUserId): array
     {
         $stmt = $this->db->prepare(
-            'SELECT id, first_name, last_name, profile_picture_path, phone_number, contact_notes, show_phone_to_users, show_contact_notes_to_users
-             FROM users
-             WHERE is_active = 1
-               AND role = :role
-               AND deleted_at IS NULL
-               AND id <> :id
+            'SELECT u.id, u.first_name, u.last_name, u.profile_picture_path, u.phone_number, u.contact_notes, u.show_phone_to_users, u.show_contact_notes_to_users
+             FROM users u
+             INNER JOIN roles r ON r.id = u.role_id
+             WHERE u.is_active = 1
+               AND r.slug = :role
+               AND u.deleted_at IS NULL
+               AND u.id <> :id
              ORDER BY first_name, last_name'
         );
         $stmt->execute([
@@ -516,12 +517,14 @@ final class PrivacyService
     private function findUserForTransparency(int $id): ?array
     {
         $stmt = $this->db->prepare(
-            'SELECT id, first_name, last_name, email, apartment_number, profile_picture_path, role, is_active,
-                    phone_number, contact_notes, show_phone_to_users,
-                    show_contact_notes_to_users, pending_email, activated_at,
-                    created_at, updated_at, last_login_at, deleted_at, anonymized_at
-             FROM users
-             WHERE id = :id
+            'SELECT u.id, u.first_name, u.last_name, u.email, u.apartment_number, u.profile_picture_path,
+                    r.slug AS role, r.name AS role_name, u.is_active,
+                    u.phone_number, u.contact_notes, u.show_phone_to_users,
+                    u.show_contact_notes_to_users, u.pending_email, u.activated_at,
+                    u.created_at, u.updated_at, u.last_login_at, u.deleted_at, u.anonymized_at
+             FROM users u
+             INNER JOIN roles r ON r.id = u.role_id
+             WHERE u.id = :id
              LIMIT 1'
         );
         $stmt->execute(['id' => $id]);
