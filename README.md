@@ -16,19 +16,19 @@ MAGNUS Reservation System is a plain PHP reservation platform for a shared livin
 
 ## Project Structure
 
-- [public/](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/public) public web root
-- [src/Core/](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/src/Core) bootstrap, router, auth, views, validation
-- [src/Controllers/](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/src/Controllers) HTTP controllers
-- [src/Services/](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/src/Services) business logic, installer, updater, maintenance, mail
-- [src/Lang/](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/src/Lang) EN/NL translations
-- [database/schema.sql](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/database/schema.sql) baseline schema
-- [database/migrations/](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/database/migrations) ordered SQL migrations
-- [Dockerfile](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/Dockerfile) Docker image
-- [docker-compose.yml](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/docker-compose.yml) local Docker stack
-- [deployment/](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/deployment) Apache/Nginx examples
-- [scripts/](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/scripts) bootstrap and server helper scripts
-- [VERSION](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/VERSION) current app version
-- [CHANGELOG.md](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/CHANGELOG.md) release notes
+- `public/` public web root
+- `src/Core/` bootstrap, router, auth, views, validation
+- `src/Controllers/` HTTP controllers
+- `src/Services/` business logic, installer, updater, maintenance, mail
+- `src/Lang/` EN/NL translations
+- `database/schema.sql` baseline schema
+- `database/migrations/` ordered SQL migrations
+- `Dockerfile` Docker image
+- `docker-compose.yml` local Docker stack
+- `deployment/` Apache/Nginx examples
+- `scripts/` bootstrap and server helper scripts
+- `VERSION` current app version
+- `CHANGELOG.md` release notes
 
 ## General Prerequisites
 
@@ -154,8 +154,8 @@ The installer then:
 
 - tries to create the database if it does not exist
 - continues with an existing database if creation rights are unavailable
-- imports the baseline schema from [database/schema.sql](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/database/schema.sql)
-- records the shipped versioned migrations from [database/migrations/](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/database/migrations) as already applied for that fresh schema baseline
+- imports the baseline schema from `database/schema.sql`
+- records the shipped versioned migrations from `database/migrations/` as already applied for that fresh schema baseline
 - creates the first admin account securely with `password_hash()`
 - writes `.env`
 - creates `storage/installed.lock`
@@ -269,15 +269,15 @@ The installer writes `.env` automatically. Important settings include:
 - `UPDATE_BACKUP_PATH`
 - `UPDATE_TEMP_PATH`
 
-See [.env.example](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/.env.example).
+See `.env.example`.
 
 ## Docker Installation
 
 This project includes a real Docker setup using:
 
-- [Dockerfile](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/Dockerfile)
-- [docker-compose.yml](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/docker-compose.yml)
-- [docker/apache-vhost.conf](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/docker/apache-vhost.conf)
+- `Dockerfile`
+- `docker-compose.yml`
+- `docker/apache-vhost.conf`
 
 ### Prerequisites
 
@@ -338,7 +338,7 @@ docker compose up -d --build
 
 ### 8. Default Docker Database Values
 
-From [docker-compose.yml](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/docker-compose.yml):
+From `docker-compose.yml`:
 
 - host: `db`
 - port: `3306`
@@ -431,7 +431,7 @@ The PHP/webserver user must be able to write:
 
 Apache:
 
-- use [deployment/apache-vhost.conf](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/deployment/apache-vhost.conf)
+- use `deployment/apache-vhost.conf`
 - enable `mod_rewrite`
 
 Typical Apache commands:
@@ -445,7 +445,7 @@ sudo systemctl reload apache2
 
 Nginx:
 
-- use [deployment/nginx-site.conf](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/deployment/nginx-site.conf)
+- use `deployment/nginx-site.conf`
 - adjust `server_name`
 - adjust the PHP-FPM socket if your PHP version differs
 
@@ -541,7 +541,7 @@ Create a MariaDB service in Coolify and note:
 ### 5. Deploy the Application
 
 1. connect Coolify to your repository
-2. use the included [Dockerfile](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/Dockerfile)
+2. use the included `Dockerfile`
 3. deploy
 4. open the application URL
 
@@ -606,7 +606,7 @@ echo "Base stack installed. Clone or upload the GitHub repository into /var/www/
 SH
 ```
 
-The same logic is available in [scripts/vps-bootstrap.sh](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/scripts/vps-bootstrap.sh).
+The same logic is available in `scripts/vps-bootstrap.sh`.
 
 ### 3. Clone the Repository onto the VPS
 
@@ -727,7 +727,7 @@ The admin panel includes an update page for supported environments.
 
 ### What It Shows
 
-- current installed version from [VERSION](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/VERSION)
+- current installed version from `VERSION`
 - latest available version from GitHub
 - detected update strategy
 - release notes or changelog
