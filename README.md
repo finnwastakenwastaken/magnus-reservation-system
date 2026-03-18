@@ -93,10 +93,16 @@ sudo chmod -R 775 /var/www/living-room/storage
 
 The normal installation flow starts by obtaining the code from the GitHub repository named `MAGNUS Reservation System`. If the GitHub slug must be URL-safe, use `magnus-reservation-system`.
 
+Repository URL:
+
+```text
+https://github.com/finnwastakenwastaken/magnus-reservation-system
+```
+
 ### Option 1: Clone with Git
 
 ```bash
-git clone <your-github-repository-url>/magnus-reservation-system.git
+git clone https://github.com/finnwastakenwastaken/magnus-reservation-system.git
 cd magnus-reservation-system
 ```
 
@@ -205,7 +211,7 @@ This project includes a real Docker setup using:
 ### 1. Get the Code
 
 ```bash
-git clone <your-github-repository-url>/magnus-reservation-system.git
+git clone https://github.com/finnwastakenwastaken/magnus-reservation-system.git
 cd magnus-reservation-system
 ```
 
@@ -319,7 +325,7 @@ Use this for shared hosting, LAMP, or LEMP deployments.
 Either clone:
 
 ```bash
-git clone <your-github-repository-url>/magnus-reservation-system.git /var/www/living-room
+git clone https://github.com/finnwastakenwastaken/magnus-reservation-system.git /var/www/living-room
 ```
 
 Or upload the extracted GitHub ZIP to:
@@ -530,7 +536,7 @@ The same logic is available in [scripts/vps-bootstrap.sh](/C:/Users/arrow/Docume
 
 ```bash
 cd /var/www
-sudo git clone <your-github-repository-url>/magnus-reservation-system.git living-room
+sudo git clone https://github.com/finnwastakenwastaken/magnus-reservation-system.git living-room
 sudo chown -R www-data:www-data /var/www/living-room
 ```
 
@@ -668,7 +674,7 @@ Set in `.env`:
 
 ```dotenv
 UPDATE_ENABLED=true
-UPDATE_REPOSITORY_URL=https://github.com/<owner>/magnus-reservation-system.git
+UPDATE_REPOSITORY_URL=https://github.com/finnwastakenwastaken/magnus-reservation-system.git
 UPDATE_REPOSITORY_BRANCH=main
 UPDATE_STRATEGY=auto
 UPDATE_GIT_BIN=git
