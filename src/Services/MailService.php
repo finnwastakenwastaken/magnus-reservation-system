@@ -44,6 +44,32 @@ final class MailService
         $this->send($recipient['email'], $subject, $body);
     }
 
+    /**
+     * Send confirmation for a requested email-address change.
+     */
+    public function sendEmailChangeConfirmation(array $user, string $newEmail, string $confirmationUrl, string $locale): void
+    {
+        $subject = $locale === 'nl' ? 'Bevestig je nieuwe e-mailadres' : 'Confirm your new email address';
+        $body = $locale === 'nl'
+            ? "Hallo {$user['first_name']},\nBevestig je nieuwe e-mailadres via: {$confirmationUrl}"
+            : "Hello {$user['first_name']},\nConfirm your new email address here: {$confirmationUrl}";
+
+        $this->send($newEmail, $subject, $body);
+    }
+
+    /**
+     * Notify the current address that an email change was requested.
+     */
+    public function sendEmailChangeNotice(array $user, string $newEmail, string $locale): void
+    {
+        $subject = $locale === 'nl' ? 'Wijziging e-mailadres aangevraagd' : 'Email address change requested';
+        $body = $locale === 'nl'
+            ? "Er is een verzoek gedaan om het account-e-mailadres te wijzigen naar {$newEmail}."
+            : "A request was made to change the account email address to {$newEmail}.";
+
+        $this->send($user['email'], $subject, $body);
+    }
+
     private function send(string $toEmail, string $subject, string $text): void
     {
         $config = Container::get('config')['mailjet'];

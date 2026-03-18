@@ -87,10 +87,11 @@ final class InstallerService
         $pdo->beginTransaction();
         try {
             // The baseline schema is still imported for fresh installs so the
-            // installer remains simple. Immediately after that, the versioned
-            // migration runner records/applies any tracked SQL migrations.
+            // installer remains simple. After importing the latest schema we
+            // mark shipped migration files as already applied, because the
+            // baseline already contains those changes.
             $this->runSchema($pdo, BASE_PATH . '/database/schema.sql');
-            (new MigrationService($pdo))->migrate();
+            (new MigrationService($pdo))->markAllAsApplied();
 
             $adminStmt = $pdo->prepare('SELECT id FROM users WHERE role = :role ORDER BY id ASC LIMIT 1');
             $adminStmt->execute(['role' => 'admin']);
@@ -125,7 +126,7 @@ final class InstallerService
             'APP_ENV' => $_ENV['APP_ENV'] ?? 'production',
             'APP_DEBUG' => $_ENV['APP_DEBUG'] ?? 'false',
             'APP_INSTALLED' => 'true',
-            'APP_VERSION' => $_ENV['APP_VERSION'] ?? (is_file(BASE_PATH . '/VERSION') ? trim((string) file_get_contents(BASE_PATH . '/VERSION')) : '0.1.0'),
+            'APP_VERSION' => $_ENV['APP_VERSION'] ?? (is_file(BASE_PATH . '/VERSION') ? trim((string) file_get_contents(BASE_PATH . '/VERSION')) : '0.2.0'),
             'APP_URL' => $appUrl,
             'APP_TIMEZONE' => $_ENV['APP_TIMEZONE'] ?? 'Europe/Amsterdam',
             'APP_LOCALE' => $_ENV['APP_LOCALE'] ?? 'en',

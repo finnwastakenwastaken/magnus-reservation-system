@@ -7,18 +7,30 @@ CREATE TABLE IF NOT EXISTS users (
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(190) NOT NULL,
     apartment_number VARCHAR(20) NOT NULL,
+    phone_number VARCHAR(30) DEFAULT NULL,
+    contact_notes VARCHAR(255) DEFAULT NULL,
+    show_phone_to_users TINYINT(1) NOT NULL DEFAULT 0,
+    show_contact_notes_to_users TINYINT(1) NOT NULL DEFAULT 0,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
     is_active TINYINT(1) NOT NULL DEFAULT 0,
     activation_code_hash VARCHAR(255) DEFAULT NULL,
     activation_code_created_at DATETIME DEFAULT NULL,
+    pending_email VARCHAR(190) DEFAULT NULL,
+    pending_email_token_hash VARCHAR(255) DEFAULT NULL,
+    pending_email_requested_at DATETIME DEFAULT NULL,
+    pending_email_expires_at DATETIME DEFAULT NULL,
     activated_at DATETIME DEFAULT NULL,
     last_login_at DATETIME DEFAULT NULL,
+    deleted_at DATETIME DEFAULT NULL,
+    anonymized_at DATETIME DEFAULT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     UNIQUE KEY uq_users_email (email),
+    UNIQUE KEY uq_users_pending_email (pending_email),
     KEY idx_users_active (is_active),
-    KEY idx_users_role (role)
+    KEY idx_users_role (role),
+    KEY idx_users_deleted (deleted_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS reservations (
@@ -106,7 +118,11 @@ INSERT INTO settings (`key`, `value`, updated_at) VALUES
 ('booking_end_hour', '22', NOW()),
 ('max_hours_per_week', '6', NOW()),
 ('max_hours_per_month', '12', NOW()),
-('timezone', 'Europe/Amsterdam', NOW())
+('timezone', 'Europe/Amsterdam', NOW()),
+('retention_unactivated_days', '60', NOW()),
+('retention_password_reset_days', '30', NOW()),
+('retention_rate_limit_days', '30', NOW()),
+('retention_update_backup_days', '30', NOW())
 ON DUPLICATE KEY UPDATE
 `value` = VALUES(`value`),
 updated_at = VALUES(updated_at);

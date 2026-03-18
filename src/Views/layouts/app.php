@@ -28,6 +28,8 @@ $isAuthenticated = $auth !== null;
                 <li class="nav-item"><a class="nav-link" href="/"><?= htmlspecialchars($t('nav.home'), ENT_QUOTES, 'UTF-8') ?></a></li>
                 <?php if ($isAuthenticated): ?>
                     <li class="nav-item"><a class="nav-link" href="/dashboard"><?= htmlspecialchars($t('nav.dashboard'), ENT_QUOTES, 'UTF-8') ?></a></li>
+                    <li class="nav-item"><a class="nav-link" href="/account"><?= htmlspecialchars($t('nav.account'), ENT_QUOTES, 'UTF-8') ?></a></li>
+                    <li class="nav-item"><a class="nav-link" href="/residents"><?= htmlspecialchars($t('nav.residents'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/reservations"><?= htmlspecialchars($t('nav.reservations'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/messages/inbox"><?= htmlspecialchars($t('nav.messages'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <?php if (($auth['role'] ?? '') === 'admin'): ?>
@@ -67,6 +69,11 @@ $isAuthenticated = $auth !== null;
 </main>
 
 <footer class="py-3 text-center text-secondary small">
+    <div class="mb-2">
+        <a class="link-secondary me-2" href="/privacy-policy"><?= htmlspecialchars($t('legal.privacy_nav'), ENT_QUOTES, 'UTF-8') ?></a>
+        <a class="link-secondary me-2" href="/cookie-notice"><?= htmlspecialchars($t('legal.cookies_nav'), ENT_QUOTES, 'UTF-8') ?></a>
+        <a class="link-secondary" href="/house-rules"><?= htmlspecialchars($t('legal.house_rules_nav'), ENT_QUOTES, 'UTF-8') ?></a>
+    </div>
     <?= htmlspecialchars($t('app.name'), ENT_QUOTES, 'UTF-8') ?> v<?= htmlspecialchars($config['app']['version'], ENT_QUOTES, 'UTF-8') ?>
 </footer>
 

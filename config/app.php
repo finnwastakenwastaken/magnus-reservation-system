@@ -15,7 +15,7 @@ return [
         'env' => $_ENV['APP_ENV'] ?? 'production',
         'debug' => filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOL),
         'installed' => filter_var($_ENV['APP_INSTALLED'] ?? false, FILTER_VALIDATE_BOOL),
-        'version' => trim((string) (is_file(BASE_PATH . '/VERSION') ? file_get_contents(BASE_PATH . '/VERSION') : ($_ENV['APP_VERSION'] ?? '0.1.0'))),
+        'version' => trim((string) (is_file(BASE_PATH . '/VERSION') ? file_get_contents(BASE_PATH . '/VERSION') : ($_ENV['APP_VERSION'] ?? '0.2.0'))),
         'url' => rtrim($_ENV['APP_URL'] ?? 'http://localhost', '/'),
         'timezone' => $_ENV['APP_TIMEZONE'] ?? 'Europe/Amsterdam',
         'locale' => $_ENV['APP_LOCALE'] ?? 'en',

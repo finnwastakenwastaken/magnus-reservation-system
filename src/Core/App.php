@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Core;
 
 use App\Controllers\AdminController;
+use App\Controllers\AccountController;
 use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
 use App\Controllers\HomeController;
 use App\Controllers\InstallController;
+use App\Controllers\LegalController;
 use App\Controllers\MessageController;
+use App\Controllers\ResidentController;
 use App\Controllers\ReservationController;
+use App\Services\PrivacyService;
 
 /**
  * Main HTTP application coordinator.
@@ -47,6 +51,11 @@ final class App
         // expects PDO to be available via the container.
         if (app_is_installed(Container::get('config'))) {
             Container::set('db', Database::connection());
+            try {
+                (new PrivacyService())->runRetentionCleanup();
+            } catch (\Throwable) {
+                // Retention cleanup should not block normal requests.
+            }
         }
         Container::set('translator', new Translator());
         Container::set('view', new View());
@@ -63,6 +72,14 @@ final class App
         $router->post('/logout', [AuthController::class, 'logout']);
         $router->match(['GET', 'POST'], '/activate', [AuthController::class, 'activate']);
         $router->get('/dashboard', [DashboardController::class, 'index']);
+        $router->get('/account', [AccountController::class, 'index']);
+        $router->post('/account/profile', [AccountController::class, 'updateProfile']);
+        $router->post('/account/email-change', [AccountController::class, 'requestEmailChange']);
+        $router->get('/account/email-change/confirm', [AccountController::class, 'confirmEmailChange']);
+        $router->post('/account/password', [AccountController::class, 'changePassword']);
+        $router->get('/account/export', [AccountController::class, 'export']);
+        $router->post('/account/delete', [AccountController::class, 'delete']);
+        $router->get('/residents', [ResidentController::class, 'index']);
         $router->get('/reservations', [ReservationController::class, 'index']);
         $router->match(['GET', 'POST'], '/reservations/create', [ReservationController::class, 'create']);
         $router->post('/reservations/{id}/cancel', [ReservationController::class, 'cancel']);
@@ -73,6 +90,7 @@ final class App
         $router->get('/admin/users', [AdminController::class, 'users']);
         $router->post('/admin/users/{id}/delete', [AdminController::class, 'deleteUser']);
         $router->post('/admin/users/{id}/reset-password', [AdminController::class, 'resetPassword']);
+        $router->post('/admin/users/{id}/apartment', [AdminController::class, 'updateApartment']);
         $router->get('/admin/reservations', [AdminController::class, 'reservations']);
         $router->post('/admin/reservations/{id}/cancel', [AdminController::class, 'cancelReservation']);
         $router->match(['GET', 'POST'], '/admin/settings', [AdminController::class, 'settings']);
@@ -80,6 +98,9 @@ final class App
         $router->post('/admin/updates/check', [AdminController::class, 'checkUpdates']);
         $router->post('/admin/updates/install', [AdminController::class, 'installUpdate']);
         $router->post('/admin/updates/rollback', [AdminController::class, 'rollbackUpdate']);
+        $router->get('/privacy-policy', [LegalController::class, 'privacy']);
+        $router->get('/cookie-notice', [LegalController::class, 'cookies']);
+        $router->get('/house-rules', [LegalController::class, 'houseRules']);
         $router->get('/lang/{locale}', [HomeController::class, 'switchLanguage']);
     }
 }

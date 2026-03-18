@@ -32,6 +32,7 @@ $errors ??= [];
                             <label class="form-label"><?= htmlspecialchars($translator->get('auth.apartment'), ENT_QUOTES, 'UTF-8') ?></label>
                             <input class="form-control <?= isset($errors['apartment_number']) ? 'is-invalid' : '' ?>" name="apartment_number" value="<?= htmlspecialchars((string) ($old['apartment_number'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                             <?php if (isset($errors['apartment_number'])): ?><div class="invalid-feedback"><?= htmlspecialchars($translator->get($errors['apartment_number']), ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+                            <div class="form-text"><?= htmlspecialchars($translator->get('signup.apartment_notice'), ENT_QUOTES, 'UTF-8') ?></div>
                         </div>
                         <div class="col-12">
                             <label class="form-label"><?= htmlspecialchars($translator->get('auth.password'), ENT_QUOTES, 'UTF-8') ?></label>
@@ -39,6 +40,12 @@ $errors ??= [];
                             <?php if (isset($errors['password'])): ?><div class="invalid-feedback"><?= htmlspecialchars($translator->get($errors['password']), ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
                         </div>
                         <?php require BASE_PATH . '/src/Views/partials/turnstile.php'; ?>
+                        <div class="col-12">
+                            <div class="small text-secondary">
+                                <?= htmlspecialchars($translator->get('signup.privacy_notice'), ENT_QUOTES, 'UTF-8') ?>
+                                <a href="/privacy-policy"><?= htmlspecialchars($translator->get('legal.privacy_nav'), ENT_QUOTES, 'UTF-8') ?></a>.
+                            </div>
+                        </div>
                         <div class="col-12">
                             <button class="btn btn-primary" type="submit"><?= htmlspecialchars($translator->get('auth.signup_submit'), ENT_QUOTES, 'UTF-8') ?></button>
                         </div>

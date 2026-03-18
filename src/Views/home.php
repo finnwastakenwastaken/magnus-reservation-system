@@ -25,3 +25,9 @@ $t = static fn(string $key, array $replace = []): string => $translator->get($ke
         <div class="card shadow-sm border-0 h-100"><div class="card-body"><h2 class="h5">3.</h2><p class="mb-0"><?= htmlspecialchars($t('home.feature_messages'), ENT_QUOTES, 'UTF-8') ?></p></div></div>
     </div>
 </div>
+<div class="card shadow-sm border-0 mt-4">
+    <div class="card-body">
+        <h2 class="h5"><?= htmlspecialchars($translator->get('home.privacy_title'), ENT_QUOTES, 'UTF-8') ?></h2>
+        <p class="mb-0"><?= htmlspecialchars($translator->get('home.privacy_text'), ENT_QUOTES, 'UTF-8') ?> <a href="/privacy-policy"><?= htmlspecialchars($translator->get('legal.privacy_nav'), ENT_QUOTES, 'UTF-8') ?></a>.</p>
+    </div>
+</div>

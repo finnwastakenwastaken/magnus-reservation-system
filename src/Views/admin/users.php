@@ -36,7 +36,14 @@ use App\Core\Csrf;
                         <td><?= (int) $user['id'] ?></td>
                         <td><?= htmlspecialchars($user['first_name'] . ' ' . $user['last_name'], ENT_QUOTES, 'UTF-8') ?></td>
                         <td><?= htmlspecialchars($user['email'], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= htmlspecialchars($user['apartment_number'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td>
+                            <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/apartment" class="d-flex gap-2">
+                                <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
+                                <input class="form-control form-control-sm" name="apartment_number" value="<?= htmlspecialchars($user['apartment_number'], ENT_QUOTES, 'UTF-8') ?>">
+                                <button class="btn btn-sm btn-outline-primary" type="submit"><?= htmlspecialchars($translator->get('admin.save'), ENT_QUOTES, 'UTF-8') ?></button>
+                            </form>
+                            <div class="small text-secondary mt-1"><?= htmlspecialchars($translator->get('admin.apartment_admin_note'), ENT_QUOTES, 'UTF-8') ?></div>
+                        </td>
                         <td><span class="badge text-bg-<?= (int) $user['is_active'] === 1 ? 'success' : 'secondary' ?>"><?= htmlspecialchars((int) $user['is_active'] === 1 ? $translator->get('admin.active') : $translator->get('admin.inactive'), ENT_QUOTES, 'UTF-8') ?></span></td>
                         <td class="d-flex gap-2 flex-wrap">
                             <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/reset-password">

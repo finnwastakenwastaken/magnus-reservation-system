@@ -68,6 +68,32 @@ final class MigrationService
         return array_map(static fn(array $row): string => $row['migration_name'], $rows);
     }
 
+    /**
+     * Record the current migration files as already applied.
+     *
+     * Fresh installs import the latest baseline schema directly, so replaying
+     * every historical migration would duplicate table/column changes. This
+     * helper marks those files as applied without re-executing them.
+     */
+    public function markAllAsApplied(): void
+    {
+        $this->ensureMigrationsTable();
+        $applied = $this->appliedMigrations();
+        $stmt = $this->db->prepare(
+            'INSERT INTO migrations (migration_name, applied_at)
+             VALUES (:migration_name, NOW())'
+        );
+
+        foreach ($this->migrationFiles() as $file) {
+            $name = basename($file);
+            if (in_array($name, $applied, true)) {
+                continue;
+            }
+
+            $stmt->execute(['migration_name' => $name]);
+        }
+    }
+
     private function ensureMigrationsTable(): void
     {
         $this->db->exec(

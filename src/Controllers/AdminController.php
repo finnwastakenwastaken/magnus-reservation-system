@@ -76,6 +76,23 @@ final class AdminController extends Controller
         return $this->redirect('/admin/users');
     }
 
+    public function updateApartment(Request $request, array $params): Response
+    {
+        Auth::requireAdmin();
+        Validator::requireCsrf($request);
+
+        try {
+            (new UserService())->adminUpdateApartment((int) $params['id'], (string) $request->input('apartment_number'), (int) Auth::user()['id']);
+            Flash::add('success', \App\Core\Container::get('translator')->get('admin.apartment_updated'));
+        } catch (\Throwable $exception) {
+            Flash::add('danger', $exception instanceof \App\Core\ValidationException
+                ? \App\Core\Container::get('translator')->get($exception->errors()['apartment_number'] ?? 'validation.apartment_invalid')
+                : $exception->getMessage());
+        }
+
+        return $this->redirect('/admin/users');
+    }
+
     public function reservations(Request $request, array $params = []): Response
     {
         Auth::requireAdmin();

@@ -59,7 +59,7 @@ final class UserService
         if (strlen($password) < 12) {
             $errors['password'] = 'validation.password_length';
         }
-        if ($this->findByEmail($email)) {
+        if ($this->emailInUseOrPending($email)) {
             $errors['email'] = 'validation.email_taken';
         }
 
@@ -135,7 +135,7 @@ final class UserService
     public function authenticate(string $email, string $password): ?array
     {
         $user = $this->findByEmail($email);
-        if (!$user || (int) $user['is_active'] !== 1) {
+        if (!$user || (int) $user['is_active'] !== 1 || $user['deleted_at'] !== null) {
             return null;
         }
 
@@ -166,8 +166,12 @@ final class UserService
     public function activeRecipients(int $excludeUserId): array
     {
         $stmt = $this->db->prepare(
-            'SELECT id, first_name, last_name, apartment_number
-             FROM users WHERE is_active = 1 AND id <> :id ORDER BY first_name, last_name'
+            'SELECT id, first_name, last_name
+             FROM users
+             WHERE is_active = 1
+               AND deleted_at IS NULL
+               AND id <> :id
+             ORDER BY first_name, last_name'
         );
         $stmt->execute(['id' => $excludeUserId]);
 
@@ -188,6 +192,7 @@ final class UserService
             $where[] = 'is_active = :is_active';
             $params['is_active'] = $isActive;
         }
+        $where[] = 'deleted_at IS NULL';
 
         $sqlWhere = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
@@ -203,9 +208,72 @@ final class UserService
 
     public function deleteUser(int $id, int $actorUserId): void
     {
-        $stmt = $this->db->prepare('DELETE FROM users WHERE id = :id AND role <> :role');
-        $stmt->execute(['id' => $id, 'role' => 'admin']);
-        $this->audit->log($actorUserId, 'admin.user_deleted', 'user', (string) $id);
+        $user = $this->findById($id);
+        if ($user === null || $user['role'] === 'admin') {
+            return;
+        }
+
+        $this->db->beginTransaction();
+        try {
+            $cancelStmt = $this->db->prepare(
+                'UPDATE reservations
+                 SET status = :status,
+                     cancelled_at = NOW(),
+                     cancelled_by_user_id = :actor_user_id,
+                     updated_at = NOW()
+                 WHERE user_id = :user_id
+                   AND status = :current_status
+                   AND start_datetime >= NOW()'
+            );
+            $cancelStmt->execute([
+                'status' => 'cancelled',
+                'actor_user_id' => $actorUserId,
+                'user_id' => $id,
+                'current_status' => 'active',
+            ]);
+
+            $stmt = $this->db->prepare(
+                'UPDATE users
+                 SET first_name = :first_name,
+                     last_name = :last_name,
+                     email = :email,
+                     apartment_number = :apartment_number,
+                     phone_number = NULL,
+                     contact_notes = NULL,
+                     show_phone_to_users = 0,
+                     show_contact_notes_to_users = 0,
+                     password_hash = :password_hash,
+                     is_active = 0,
+                     activation_code_hash = NULL,
+                     activation_code_created_at = NULL,
+                     pending_email = NULL,
+                     pending_email_token_hash = NULL,
+                     pending_email_requested_at = NULL,
+                     pending_email_expires_at = NULL,
+                     deleted_at = NOW(),
+                     anonymized_at = NOW(),
+                     updated_at = NOW()
+                 WHERE id = :id'
+            );
+            $stmt->execute([
+                'first_name' => 'Deleted',
+                'last_name' => 'Resident',
+                'email' => 'deleted-user-' . $id . '@example.invalid',
+                'apartment_number' => 'REMOVED',
+                'password_hash' => password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT),
+                'id' => $id,
+            ]);
+
+            $this->db->commit();
+        } catch (\Throwable $exception) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
+            throw $exception;
+        }
+
+        $this->audit->log($actorUserId, 'admin.user_deleted', 'user', (string) $id, ['mode' => 'anonymized']);
     }
 
     public function adminResetPassword(int $id, int $actorUserId): string
@@ -219,5 +287,41 @@ final class UserService
         $this->audit->log($actorUserId, 'admin.password_reset', 'user', (string) $id);
 
         return $tempPassword;
+    }
+
+    /**
+     * Update the apartment assignment from the admin side only.
+     *
+     * Apartment assignment is treated as building-managed residency data and is
+     * therefore intentionally excluded from the resident self-service account UI.
+     */
+    public function adminUpdateApartment(int $id, string $apartmentNumber, int $actorUserId): void
+    {
+        if (!Validator::apartment($apartmentNumber)) {
+            throw new ValidationException(['apartment_number' => 'validation.apartment_invalid']);
+        }
+
+        $stmt = $this->db->prepare('UPDATE users SET apartment_number = :apartment_number, updated_at = NOW() WHERE id = :id');
+        $stmt->execute([
+            'apartment_number' => trim($apartmentNumber),
+            'id' => $id,
+        ]);
+
+        $this->audit->log($actorUserId, 'admin.apartment_updated', 'user', (string) $id, [
+            'apartment_number' => trim($apartmentNumber),
+        ]);
+    }
+
+    private function emailInUseOrPending(string $email): bool
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id
+             FROM users
+             WHERE email = :email OR pending_email = :email
+             LIMIT 1'
+        );
+        $stmt->execute(['email' => strtolower($email)]);
+
+        return (bool) $stmt->fetchColumn();
     }
 }

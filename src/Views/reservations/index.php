@@ -10,6 +10,7 @@ $currentUser = Auth::user();
     <div>
         <h1 class="h3 mb-1"><?= htmlspecialchars($translator->get('reservation.calendar'), ENT_QUOTES, 'UTF-8') ?></h1>
         <p class="text-secondary mb-0"><?= htmlspecialchars($selectedMonth->format('F Y'), ENT_QUOTES, 'UTF-8') ?></p>
+        <p class="small text-secondary mb-0"><?= htmlspecialchars($translator->get('reservation.privacy_notice'), ENT_QUOTES, 'UTF-8') ?></p>
     </div>
     <div class="d-flex gap-2">
         <form method="get">

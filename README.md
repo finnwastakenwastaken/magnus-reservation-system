@@ -9,6 +9,7 @@ MAGNUS Reservation System is a plain PHP reservation platform for a shared livin
 - Web installer at `/install`
 - Shared-room reservation rules and overlap protection
 - Internal messaging with Mailjet notifications
+- Privacy-aware account management with data export, email-change verification, and self-service account deletion
 - Cloudflare Turnstile integration
 - Admin panel for users, reservations, settings, and updates
 - GitHub-aware update system for supported mutable deployments
@@ -154,12 +155,87 @@ The installer then:
 - tries to create the database if it does not exist
 - continues with an existing database if creation rights are unavailable
 - imports the baseline schema from [database/schema.sql](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/database/schema.sql)
-- applies versioned migrations from [database/migrations/](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/database/migrations)
+- records the shipped versioned migrations from [database/migrations/](/C:/Users/arrow/Documents/ICT Projects/PhPStorm/untitled1/database/migrations) as already applied for that fresh schema baseline
 - creates the first admin account securely with `password_hash()`
 - writes `.env`
 - creates `storage/installed.lock`
 
 After successful installation, `/install` is blocked until manually reset by a developer.
+
+## Privacy and Account Management
+
+The application includes resident-facing privacy controls intended to be practical and privacy-by-default for a residential reservation tool.
+
+### What Normal Users Can Edit
+
+- email address, through a confirmed email-change flow
+- password, after confirming the current password
+- optional contact fields:
+  - phone number
+  - contact note / contact preference
+- visibility toggles for those optional contact fields
+
+### What Normal Users Cannot Edit
+
+- apartment number
+- building or residency assignment data
+- admin role and account state
+
+Apartment assignment is treated as admin-managed residency data. If it is wrong, an administrator must correct it.
+
+### Privacy Defaults
+
+- reservation listings shown to residents display only first name plus last initial
+- other residents do not see email addresses in the UI
+- optional profile fields are hidden unless the resident explicitly enables visibility
+- admins can still access full account data where needed for building administration
+
+### Account Data Transparency
+
+Logged-in users can open `/account` to:
+
+- review stored account data
+- see linked reservation and message counts
+- export a machine-readable JSON copy of their own account data
+- manage privacy visibility settings
+
+The export intentionally excludes internal-only security values such as password hashes, activation-code hashes, and pending-email token hashes.
+
+### Email Change Flow
+
+- the user enters a new email address and their current password
+- the system stores the new address as pending
+- a confirmation link is sent to the new address
+- the old address receives a notice that a change was requested
+- the account email is only switched after the confirmation link is used
+
+### Account Deletion and Anonymization
+
+Residents can delete their own account from `/account`, but must:
+
+- confirm their current password
+- tick an explicit confirmation checkbox
+
+Deletion strategy:
+
+- future reservations are cancelled
+- direct identifiers on the user record are anonymized
+- login is disabled
+- linked reservations, messages, and audit references are preserved in anonymized form where needed for system integrity and legitimate administration
+
+Administrator accounts cannot self-delete through the normal resident account page.
+
+### Retention Behavior
+
+The app opportunistically cleans up several low-value data categories during normal requests:
+
+- unactivated accounts older than the configured retention period
+- expired password-reset records
+- stale rate-limit records
+- expired pending email-change requests
+- old updater backup/temp files
+
+Confirmed reservations, messages, and audit log entries are not silently purged by default.
 
 ## Environment Variables
 
@@ -617,7 +693,7 @@ Enter:
 - configure Mailjet and Turnstile in `.env`
 - enable HTTPS
 
-Typical Let’s Encrypt step:
+Typical Let's Encrypt step:
 
 ```bash
 sudo apt-get install -y certbot python3-certbot-nginx
@@ -740,6 +816,8 @@ For every deployment method:
 - admin login should work
 - reservations should save
 - messages should save
+- `/account` should show data export, email-change, password-change, and delete-account controls
+- `/residents` should show only opt-in profile details
 - if mail is disabled, `storage/logs/app.log` should be writable
 
 ### Secure the Installation
@@ -901,6 +979,8 @@ docker compose up -d --build
 - weekly limits use ISO weeks
 - monthly limits use calendar months
 - admin password reset currently uses a temporary password flow
+- apartment number is admin-managed and intentionally not editable by normal users
+- account deletion anonymizes the user row instead of hard-deleting linked history
 
 ## Known Limitations
 
@@ -908,3 +988,4 @@ docker compose up -d --build
 - archive-based self-updates require `ZipArchive` and writable code directories
 - Docker and Coolify should redeploy from GitHub rather than self-update
 - the reservation UI is a responsive list/table, not a drag-and-drop calendar
+- the privacy policy and retention model are practical implementation guidance, not a substitute for legal review tailored to your building or organization

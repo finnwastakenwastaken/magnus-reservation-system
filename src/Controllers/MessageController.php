@@ -94,7 +94,7 @@ final class MessageController extends Controller
 
         return $this->view('messages/compose', [
             'users' => $users,
-            'old' => [],
+            'old' => ['recipient_user_id' => (string) $request->input('recipient_user_id', '')],
             'errors' => [],
         ]);
     }
