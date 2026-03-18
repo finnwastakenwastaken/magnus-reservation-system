@@ -80,6 +80,25 @@ final class MessageService
         return $this->listFor('sender_user_id', $userId, $page, $perPage);
     }
 
+    public function paginatedAll(int $page, int $perPage): array
+    {
+        $offset = ($page - 1) * $perPage;
+        $total = (int) $this->db->query('SELECT COUNT(*) FROM messages')->fetchColumn();
+
+        $stmt = $this->db->prepare(
+            "SELECT m.*, s.first_name AS sender_first_name, s.last_name AS sender_last_name,
+                    r.first_name AS recipient_first_name, r.last_name AS recipient_last_name
+             FROM messages m
+             INNER JOIN users s ON s.id = m.sender_user_id
+             INNER JOIN users r ON r.id = m.recipient_user_id
+             ORDER BY m.created_at DESC
+             LIMIT {$perPage} OFFSET {$offset}"
+        );
+        $stmt->execute();
+
+        return ['items' => $stmt->fetchAll(), 'total' => $total];
+    }
+
     private function listFor(string $column, int $userId, int $page, int $perPage): array
     {
         $offset = ($page - 1) * $perPage;

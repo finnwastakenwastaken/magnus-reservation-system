@@ -8,7 +8,10 @@
 /storage/update.lock
 /storage/backups/*
 /storage/updates/*
-/storage/cache/.gitkeep
-/storage/logs/.gitkeep
-/storage/backups/.gitkeep
-/storage/updates/.gitkeep
+/public/uploads/*
+!/storage/cache/.gitkeep
+!/storage/logs/.gitkeep
+!/storage/backups/.gitkeep
+!/storage/updates/.gitkeep
+!/public/uploads/.gitkeep
+!/public/uploads/.htaccess

@@ -70,6 +70,31 @@ final class MailService
         $this->send($user['email'], $subject, $body);
     }
 
+    public function notifyReservationChanged(array $recipient, array $actor, array $reservation, ?array $previous, string $locale): void
+    {
+        $subject = $locale === 'nl' ? 'Je reservering is gewijzigd' : 'Your reservation was changed';
+        $oldText = $previous !== null
+            ? ($locale === 'nl'
+                ? "\nOud: {$previous['start_datetime']} - {$previous['end_datetime']}"
+                : "\nPrevious: {$previous['start_datetime']} - {$previous['end_datetime']}")
+            : '';
+        $body = $locale === 'nl'
+            ? "Je reservering is aangepast door {$actor['first_name']}.\nNieuw: {$reservation['start_datetime']} - {$reservation['end_datetime']}{$oldText}"
+            : "Your reservation was updated by {$actor['first_name']}.\nNew: {$reservation['start_datetime']} - {$reservation['end_datetime']}{$oldText}";
+
+        $this->send($recipient['email'], $subject, $body);
+    }
+
+    public function notifyReservationCancelled(array $recipient, array $actor, array $reservation, string $locale): void
+    {
+        $subject = $locale === 'nl' ? 'Je reservering is geannuleerd' : 'Your reservation was cancelled';
+        $body = $locale === 'nl'
+            ? "Je reservering op {$reservation['start_datetime']} - {$reservation['end_datetime']} is geannuleerd door {$actor['first_name']}."
+            : "Your reservation on {$reservation['start_datetime']} - {$reservation['end_datetime']} was cancelled by {$actor['first_name']}.";
+
+        $this->send($recipient['email'], $subject, $body);
+    }
+
     private function send(string $toEmail, string $subject, string $text): void
     {
         $config = Container::get('config')['mailjet'];

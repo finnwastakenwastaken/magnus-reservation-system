@@ -21,11 +21,21 @@ use App\Services\ReservationService;
  */
 final class ReservationController extends Controller
 {
+    public function publicOverview(Request $request, array $params = []): Response
+    {
+        $selectedMonth = $this->selectedMonthFromInput($request->input('month'));
+        $service = new ReservationService();
+
+        return $this->view('reservations/public', [
+            'selectedMonth' => $selectedMonth,
+            'reservations' => $service->publicCalendarMonth($selectedMonth),
+        ]);
+    }
+
     public function index(Request $request, array $params = []): Response
     {
         Auth::requireUser();
-        $month = $request->input('month');
-        $selectedMonth = $month ? new \DateTimeImmutable((string) $month . '-01') : new \DateTimeImmutable('first day of this month');
+        $selectedMonth = $this->selectedMonthFromInput($request->input('month'));
         $service = new ReservationService();
 
         return $this->view('reservations/index', [
@@ -71,5 +81,24 @@ final class ReservationController extends Controller
         Flash::add('success', \App\Core\Container::get('translator')->get('reservation.cancelled'));
 
         return $this->redirect('/reservations');
+    }
+
+    /**
+     * Normalize the month picker input.
+     *
+     * The UI submits `YYYY-MM`. Invalid values fall back to the current month
+     * instead of bubbling an exception into a 500 response.
+     */
+    private function selectedMonthFromInput(mixed $monthInput): \DateTimeImmutable
+    {
+        if (!is_string($monthInput) || preg_match('/^\d{4}-\d{2}$/', $monthInput) !== 1) {
+            return new \DateTimeImmutable('first day of this month');
+        }
+
+        try {
+            return new \DateTimeImmutable($monthInput . '-01');
+        } catch (\Exception) {
+            return new \DateTimeImmutable('first day of this month');
+        }
     }
 }

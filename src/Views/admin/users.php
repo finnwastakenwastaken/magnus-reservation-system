@@ -25,6 +25,7 @@ use App\Core\Csrf;
                     <th>ID</th>
                     <th><?= htmlspecialchars($translator->get('auth.first_name'), ENT_QUOTES, 'UTF-8') ?></th>
                     <th><?= htmlspecialchars($translator->get('auth.email'), ENT_QUOTES, 'UTF-8') ?></th>
+                    <th><?= htmlspecialchars($translator->get('admin.role'), ENT_QUOTES, 'UTF-8') ?></th>
                     <th><?= htmlspecialchars($translator->get('auth.apartment'), ENT_QUOTES, 'UTF-8') ?></th>
                     <th><?= htmlspecialchars($translator->get('admin.filter_status'), ENT_QUOTES, 'UTF-8') ?></th>
                     <th><?= htmlspecialchars($translator->get('reservation.actions'), ENT_QUOTES, 'UTF-8') ?></th>
@@ -37,24 +38,49 @@ use App\Core\Csrf;
                         <td><?= htmlspecialchars($user['first_name'] . ' ' . $user['last_name'], ENT_QUOTES, 'UTF-8') ?></td>
                         <td><?= htmlspecialchars($user['email'], ENT_QUOTES, 'UTF-8') ?></td>
                         <td>
-                            <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/apartment" class="d-flex gap-2">
-                                <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
-                                <input class="form-control form-control-sm" name="apartment_number" value="<?= htmlspecialchars($user['apartment_number'], ENT_QUOTES, 'UTF-8') ?>">
-                                <button class="btn btn-sm btn-outline-primary" type="submit"><?= htmlspecialchars($translator->get('admin.save'), ENT_QUOTES, 'UTF-8') ?></button>
-                            </form>
-                            <div class="small text-secondary mt-1"><?= htmlspecialchars($translator->get('admin.apartment_admin_note'), ENT_QUOTES, 'UTF-8') ?></div>
+                            <?php if (!empty($canEditUsers)): ?>
+                                <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/role" class="d-flex gap-2">
+                                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
+                                    <select class="form-select form-select-sm" name="role">
+                                        <?php foreach (['user', 'manager', 'admin'] as $role): ?>
+                                            <option value="<?= htmlspecialchars($role, ENT_QUOTES, 'UTF-8') ?>" <?= $user['role'] === $role ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($translator->get('role.' . $role), ENT_QUOTES, 'UTF-8') ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <button class="btn btn-sm btn-outline-primary" type="submit"><?= htmlspecialchars($translator->get('admin.save'), ENT_QUOTES, 'UTF-8') ?></button>
+                                </form>
+                            <?php else: ?>
+                                <?= htmlspecialchars($translator->get('role.' . $user['role']), ENT_QUOTES, 'UTF-8') ?>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if (!empty($canEditUsers)): ?>
+                                <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/apartment" class="d-flex gap-2">
+                                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
+                                    <input class="form-control form-control-sm" name="apartment_number" value="<?= htmlspecialchars($user['apartment_number'], ENT_QUOTES, 'UTF-8') ?>">
+                                    <button class="btn btn-sm btn-outline-primary" type="submit"><?= htmlspecialchars($translator->get('admin.save'), ENT_QUOTES, 'UTF-8') ?></button>
+                                </form>
+                                <div class="small text-secondary mt-1"><?= htmlspecialchars($translator->get('admin.apartment_admin_note'), ENT_QUOTES, 'UTF-8') ?></div>
+                            <?php else: ?>
+                                <?= htmlspecialchars($user['apartment_number'], ENT_QUOTES, 'UTF-8') ?>
+                            <?php endif; ?>
                         </td>
                         <td><span class="badge text-bg-<?= (int) $user['is_active'] === 1 ? 'success' : 'secondary' ?>"><?= htmlspecialchars((int) $user['is_active'] === 1 ? $translator->get('admin.active') : $translator->get('admin.inactive'), ENT_QUOTES, 'UTF-8') ?></span></td>
                         <td class="d-flex gap-2 flex-wrap">
-                            <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/reset-password">
-                                <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
-                                <button class="btn btn-sm btn-outline-warning" type="submit"><?= htmlspecialchars($translator->get('admin.password_reset'), ENT_QUOTES, 'UTF-8') ?></button>
-                            </form>
-                            <?php if ($user['role'] !== 'admin'): ?>
-                                <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/delete" onsubmit="return confirm('<?= htmlspecialchars($translator->get('admin.confirm_delete'), ENT_QUOTES, 'UTF-8') ?>');">
+                            <?php if (!empty($canEditUsers)): ?>
+                                <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/reset-password">
                                     <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
-                                    <button class="btn btn-sm btn-outline-danger" type="submit"><?= htmlspecialchars($translator->get('admin.delete'), ENT_QUOTES, 'UTF-8') ?></button>
+                                    <button class="btn btn-sm btn-outline-warning" type="submit"><?= htmlspecialchars($translator->get('admin.password_reset'), ENT_QUOTES, 'UTF-8') ?></button>
                                 </form>
+                                <?php if ($user['role'] !== 'admin'): ?>
+                                    <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/delete" onsubmit="return confirm('<?= htmlspecialchars($translator->get('admin.confirm_delete'), ENT_QUOTES, 'UTF-8') ?>');">
+                                        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
+                                        <button class="btn btn-sm btn-outline-danger" type="submit"><?= htmlspecialchars($translator->get('admin.delete'), ENT_QUOTES, 'UTF-8') ?></button>
+                                    </form>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <span class="text-secondary small"><?= htmlspecialchars($translator->get('admin.read_only'), ENT_QUOTES, 'UTF-8') ?></span>
                             <?php endif; ?>
                         </td>
                     </tr>

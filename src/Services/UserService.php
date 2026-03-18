@@ -13,7 +13,7 @@ use PDOException;
 /**
  * User account lifecycle service.
  *
- * Owns registration, activation, authentication, admin account management, and
+ * Owns registration, activation, authentication, staff account management, and
  * resident lookup methods used across messaging and admin screens.
  */
 final class UserService
@@ -21,12 +21,14 @@ final class UserService
     private PDO $db;
     private AuditService $audit;
     private MailService $mail;
+    private ImageUploadService $images;
 
     public function __construct(?AuditService $audit = null, ?MailService $mail = null)
     {
         $this->db = Container::get('db');
         $this->audit = $audit ?? new AuditService();
         $this->mail = $mail ?? new MailService();
+        $this->images = new ImageUploadService();
     }
 
     /**
@@ -210,6 +212,33 @@ final class UserService
         return ['items' => $listStmt->fetchAll(), 'total' => $total];
     }
 
+    public function updateRole(int $id, string $role, int $actorUserId): void
+    {
+        if (!in_array($role, ['user', 'manager', 'admin'], true)) {
+            throw new ValidationException(['role' => 'validation.role_invalid']);
+        }
+
+        $target = $this->findById($id);
+        if ($target === null) {
+            return;
+        }
+
+        if ($target['role'] === 'admin' && $role !== 'admin') {
+            $adminCount = (int) $this->db->query("SELECT COUNT(*) FROM users WHERE role = 'admin' AND deleted_at IS NULL")->fetchColumn();
+            if ($adminCount <= 1) {
+                throw new ValidationException(['role' => 'validation.last_admin']);
+            }
+        }
+
+        $stmt = $this->db->prepare('UPDATE users SET role = :role, updated_at = NOW() WHERE id = :id');
+        $stmt->execute([
+            'role' => $role,
+            'id' => $id,
+        ]);
+
+        $this->audit->log($actorUserId, 'admin.user_role_updated', 'user', (string) $id, ['role' => $role]);
+    }
+
     public function deleteUser(int $id, int $actorUserId): void
     {
         $user = $this->findById($id);
@@ -242,6 +271,7 @@ final class UserService
                      last_name = :last_name,
                      email = :email,
                      apartment_number = :apartment_number,
+                     profile_picture_path = NULL,
                      phone_number = NULL,
                      contact_notes = NULL,
                      show_phone_to_users = 0,
@@ -268,6 +298,7 @@ final class UserService
                 'id' => $id,
             ]);
 
+            $this->images->deletePublicPath($user['profile_picture_path'] ?? null);
             $this->db->commit();
         } catch (\Throwable $exception) {
             if ($this->db->inTransaction()) {

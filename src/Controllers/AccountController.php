@@ -135,6 +135,45 @@ final class AccountController extends Controller
     }
 
     /**
+     * Upload or replace the resident's profile picture.
+     */
+    public function uploadProfilePicture(Request $request, array $params = []): Response
+    {
+        Auth::requireUser();
+        Validator::requireCsrf($request);
+        $service = new PrivacyService();
+        $user = Auth::user();
+        $translator = \App\Core\Container::get('translator');
+
+        try {
+            $service->updateProfilePicture($user, $request->file('profile_picture'));
+            Flash::add('success', $translator->get('account.profile_picture_saved'));
+            return $this->redirect('/account');
+        } catch (ValidationException $exception) {
+            return $this->view('account/index', [
+                'user' => $user,
+                'accountData' => $service->accountData((int) $user['id']),
+                'errors' => $exception->errors(),
+                'old' => $request->all(),
+            ]);
+        }
+    }
+
+    /**
+     * Remove the resident's uploaded profile picture and fall back to the
+     * default avatar presentation.
+     */
+    public function removeProfilePicture(Request $request, array $params = []): Response
+    {
+        Auth::requireUser();
+        Validator::requireCsrf($request);
+        (new PrivacyService())->removeProfilePicture(Auth::user());
+        Flash::add('success', \App\Core\Container::get('translator')->get('account.profile_picture_removed'));
+
+        return $this->redirect('/account');
+    }
+
+    /**
      * Return a machine-readable export of the resident's own stored account data.
      */
     public function export(Request $request, array $params = []): Response

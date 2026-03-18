@@ -11,6 +11,7 @@ $t = static fn(string $key, array $replace = []): string => $translator->get($ke
         <div class="d-flex flex-wrap gap-2">
             <a class="btn btn-primary btn-lg" href="/signup"><?= htmlspecialchars($t('home.cta.signup'), ENT_QUOTES, 'UTF-8') ?></a>
             <a class="btn btn-outline-secondary btn-lg" href="/login"><?= htmlspecialchars($t('home.cta.login'), ENT_QUOTES, 'UTF-8') ?></a>
+            <a class="btn btn-outline-primary btn-lg" href="/availability"><?= htmlspecialchars($t('nav.availability'), ENT_QUOTES, 'UTF-8') ?></a>
         </div>
     </div>
 </div>

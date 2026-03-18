@@ -6,6 +6,7 @@ use App\Core\Csrf;
 
 $t = static fn(string $key, array $replace = []): string => $translator->get($key, $replace);
 $isAuthenticated = $auth !== null;
+$siteLogoPath = $siteSettings['site_logo_path'] ?? '';
 ?>
 <!doctype html>
 <html lang="<?= htmlspecialchars($translator->locale(), ENT_QUOTES, 'UTF-8') ?>">
@@ -19,20 +20,28 @@ $isAuthenticated = $auth !== null;
 <body class="bg-body-tertiary">
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
     <div class="container">
-        <a class="navbar-brand fw-semibold" href="/"><?= htmlspecialchars($t('app.name'), ENT_QUOTES, 'UTF-8') ?></a>
+        <a class="navbar-brand fw-semibold d-flex align-items-center gap-2" href="/">
+            <?php if ($siteLogoPath !== ''): ?>
+                <img src="<?= htmlspecialchars($siteLogoPath, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($t('app.name'), ENT_QUOTES, 'UTF-8') ?>" style="height:40px; width:auto;">
+            <?php else: ?>
+                <span class="rounded bg-white text-primary px-2 py-1 fw-bold">M</span>
+            <?php endif; ?>
+            <span><?= htmlspecialchars($t('app.name'), ENT_QUOTES, 'UTF-8') ?></span>
+        </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navMain">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item"><a class="nav-link" href="/"><?= htmlspecialchars($t('nav.home'), ENT_QUOTES, 'UTF-8') ?></a></li>
+                <li class="nav-item"><a class="nav-link" href="/availability"><?= htmlspecialchars($t('nav.availability'), ENT_QUOTES, 'UTF-8') ?></a></li>
                 <?php if ($isAuthenticated): ?>
                     <li class="nav-item"><a class="nav-link" href="/dashboard"><?= htmlspecialchars($t('nav.dashboard'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/account"><?= htmlspecialchars($t('nav.account'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/residents"><?= htmlspecialchars($t('nav.residents'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/reservations"><?= htmlspecialchars($t('nav.reservations'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/messages/inbox"><?= htmlspecialchars($t('nav.messages'), ENT_QUOTES, 'UTF-8') ?></a></li>
-                    <?php if (($auth['role'] ?? '') === 'admin'): ?>
+                    <?php if (in_array(($auth['role'] ?? ''), ['admin', 'manager'], true)): ?>
                         <li class="nav-item"><a class="nav-link" href="/admin"><?= htmlspecialchars($t('nav.admin'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <?php endif; ?>
                 <?php endif; ?>

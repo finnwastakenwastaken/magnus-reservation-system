@@ -54,6 +54,13 @@ final class SettingsService
         ];
     }
 
+    public function siteLogoPath(): ?string
+    {
+        $path = (string) $this->get('site_logo_path', '');
+
+        return $path !== '' ? $path : null;
+    }
+
     public function updateMany(array $input): void
     {
         $stmt = $this->db->prepare('UPDATE settings SET `value` = :value, updated_at = NOW() WHERE `key` = :key');

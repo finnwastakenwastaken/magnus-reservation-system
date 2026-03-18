@@ -11,7 +11,16 @@
         <div class="col-md-6 col-xl-4">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body">
-                    <h2 class="h5"><?= htmlspecialchars($resident['display_name'], ENT_QUOTES, 'UTF-8') ?></h2>
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <?php if (!empty($resident['profile_picture_path'])): ?>
+                            <img src="<?= htmlspecialchars($resident['profile_picture_path'], ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($resident['display_name'], ENT_QUOTES, 'UTF-8') ?>" class="rounded-circle" style="width:56px;height:56px;object-fit:cover;">
+                        <?php else: ?>
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width:56px;height:56px;">
+                                <?= htmlspecialchars(strtoupper(substr((string) $resident['display_name'], 0, 1)), ENT_QUOTES, 'UTF-8') ?>
+                            </div>
+                        <?php endif; ?>
+                        <h2 class="h5 mb-0"><?= htmlspecialchars($resident['display_name'], ENT_QUOTES, 'UTF-8') ?></h2>
+                    </div>
                     <?php if ($resident['phone_number']): ?>
                         <p class="mb-2"><strong><?= htmlspecialchars($translator->get('account.phone_number'), ENT_QUOTES, 'UTF-8') ?>:</strong> <?= htmlspecialchars($resident['phone_number'], ENT_QUOTES, 'UTF-8') ?></p>
                     <?php endif; ?>

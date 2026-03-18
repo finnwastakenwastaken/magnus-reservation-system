@@ -51,6 +51,23 @@ final class Auth
         return self::user() !== null;
     }
 
+    public static function isAdmin(): bool
+    {
+        return self::hasRole('admin');
+    }
+
+    public static function hasRole(string|array $roles): bool
+    {
+        $user = self::user();
+        if ($user === null) {
+            return false;
+        }
+
+        $roles = is_array($roles) ? $roles : [$roles];
+
+        return in_array($user['role'], $roles, true);
+    }
+
     public static function requireUser(): void
     {
         if (!self::check()) {
@@ -60,10 +77,18 @@ final class Auth
 
     public static function requireAdmin(): void
     {
-        // Role checks are enforced server-side on every admin route to prevent
-        // privilege escalation through crafted requests.
-        $user = self::user();
-        if (!$user || $user['role'] !== 'admin') {
+        self::requireRoles('admin');
+    }
+
+    /**
+     * Enforce one or more allowed roles server-side.
+     *
+     * The UI may hide links, but these checks are the authoritative guard
+     * against privilege escalation through crafted requests.
+     */
+    public static function requireRoles(string|array $roles): void
+    {
+        if (!self::hasRole($roles)) {
             throw new HttpException('Forbidden', 403);
         }
     }

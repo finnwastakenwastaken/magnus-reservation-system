@@ -18,11 +18,17 @@ final class View
         $config = Container::get('config');
         $flash = Flash::all();
         $auth = null;
+        $siteSettings = [];
         if (app_is_installed($config)) {
             try {
                 $auth = Auth::user();
             } catch (\Throwable) {
                 $auth = null;
+            }
+            try {
+                $siteSettings = (new \App\Services\SettingsService())->all();
+            } catch (\Throwable) {
+                $siteSettings = [];
             }
         }
 

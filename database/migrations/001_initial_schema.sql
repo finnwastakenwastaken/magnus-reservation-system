@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
     show_phone_to_users TINYINT(1) NOT NULL DEFAULT 0,
     show_contact_notes_to_users TINYINT(1) NOT NULL DEFAULT 0,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+    profile_picture_path VARCHAR(255) DEFAULT NULL,
+    role ENUM('user', 'manager', 'admin') NOT NULL DEFAULT 'user',
     is_active TINYINT(1) NOT NULL DEFAULT 0,
     activation_code_hash VARCHAR(255) DEFAULT NULL,
     activation_code_created_at DATETIME DEFAULT NULL,
@@ -41,10 +42,12 @@ CREATE TABLE IF NOT EXISTS reservations (
     status ENUM('active', 'cancelled') NOT NULL DEFAULT 'active',
     cancelled_at DATETIME DEFAULT NULL,
     cancelled_by_user_id INT UNSIGNED DEFAULT NULL,
+    last_modified_by_user_id INT UNSIGNED DEFAULT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     CONSTRAINT fk_reservations_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_reservations_cancelled_by FOREIGN KEY (cancelled_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_reservations_modified_by FOREIGN KEY (last_modified_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
     KEY idx_reservations_window (start_datetime, end_datetime, status),
     KEY idx_reservations_user_status (user_id, status, start_datetime)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -106,6 +109,19 @@ CREATE TABLE IF NOT EXISTS audit_log (
     KEY idx_audit_event (event_type, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    title VARCHAR(190) NOT NULL,
+    body TEXT NOT NULL,
+    link_url VARCHAR(255) DEFAULT NULL,
+    is_read TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL,
+    CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    KEY idx_notifications_user_created (user_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS migrations (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     migration_name VARCHAR(190) NOT NULL,
@@ -119,6 +135,7 @@ INSERT INTO settings (`key`, `value`, updated_at) VALUES
 ('max_hours_per_week', '6', NOW()),
 ('max_hours_per_month', '12', NOW()),
 ('timezone', 'Europe/Amsterdam', NOW()),
+('site_logo_path', '', NOW()),
 ('retention_unactivated_days', '60', NOW()),
 ('retention_password_reset_days', '30', NOW()),
 ('retention_rate_limit_days', '30', NOW()),

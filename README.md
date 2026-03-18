@@ -1,6 +1,6 @@
 # MAGNUS Reservation System
 
-MAGNUS Reservation System is a plain PHP application for managing reservations for a shared living room in an apartment complex. It includes resident signup and activation, calendar-based reservations, internal messaging, bilingual Dutch/English support, an admin panel, a first-run installer, and a conservative in-app updater for supported deployments.
+MAGNUS Reservation System is a plain PHP application for managing reservations for a shared living room in an apartment complex. It includes resident signup and activation, calendar-based reservations, internal messaging, bilingual Dutch/English support, role-based staff access, branding controls, a first-run installer, and a conservative in-app updater for supported deployments.
 
 ## Overview
 
@@ -21,16 +21,28 @@ Key goals:
 - Shared-room reservation calendar with overlap protection
 - Configurable booking limits and opening hours
 - Internal resident messaging with optional Mailjet notifications
+- Manager role for operational oversight of users, reservations, and messages
 - Bilingual interface in English and Dutch
-- Admin panel for users, reservations, settings, and updates
+- Admin panel for users, reservations, settings, branding, and updates
 - First-run installer that writes `.env` and creates the initial admin account
 - In-app updater for supported mutable deployments
+- Public availability overview for guests with no personal details
+- Admin-managed site logo uploads
 - Privacy-aware account management, including:
   - data overview and export
   - password change
   - verified email-change flow
   - self-service account deletion and anonymization
   - privacy visibility settings for optional profile fields
+  - profile picture upload and removal
+
+## Feature summary
+
+- Public guests can view room availability without seeing resident names or contact details.
+- Residents can manage their own privacy settings, profile picture, password, and verified email changes.
+- Managers can review users, private messages, and reservations for operational reasons.
+- Administrators can additionally manage booking settings, site branding, and application updates.
+- Staff-triggered reservation changes and cancellations create user-visible notifications and optional email alerts.
 
 ## Requirements / Prerequisites
 
@@ -65,6 +77,7 @@ Recommended:
   - `storage/logs/`
   - `storage/backups/`
   - `storage/updates/`
+  - `public/uploads/`
 
 ### Dependencies
 
@@ -213,6 +226,7 @@ Use Coolify as a Dockerfile-based deployment.
    - `storage/logs/`
    - `storage/backups/`
    - `storage/updates/`
+   - `public/uploads/`
 6. Deploy the application and open `/install`.
 
 Do not use the in-app updater on Coolify. Redeploy from GitHub through Coolify instead.
@@ -293,9 +307,7 @@ sudo certbot --nginx -d example.com -d www.example.com
 
 For a git-based VPS deployment, the in-app updater can be appropriate if the checkout is writable and the environment is not containerized.
 
-## Usage
-
-### First-run installer
+## First-run installer
 
 On a fresh install, the application checks whether it has already been installed by looking at:
 
@@ -333,13 +345,17 @@ After a successful install:
 - the initial administrator can log in
 - normal users can sign up and activate their account
 
+## Usage
+
 ### Basic usage notes
 
 - residents sign up with their apartment number and wait for physical mailbox activation
 - only activated users can log in
 - reservations are limited by configurable booking hours and per-user weekly/monthly quotas
 - resident-facing reservation listings use privacy-safe names
-- admins manage users, reservations, settings, and updates
+- guests can view availability without any personal details
+- managers can oversee users, messages, and reservations
+- admins manage users, reservations, settings, branding, and updates
 
 ### Manual admin bootstrap
 
@@ -415,6 +431,12 @@ Important variables:
   - `UPDATE_BACKUP_PATH`
   - `UPDATE_TEMP_PATH`
 
+Uploads and branding:
+
+- site branding is stored through the settings table
+- uploaded logos and profile pictures are stored under `public/uploads/`
+- only PNG, JPG/JPEG, and WEBP uploads are accepted by the application
+
 ## Updating the application
 
 The project includes an admin-only in-app updater available at `/admin/updates`.
@@ -448,6 +470,8 @@ In unsupported environments, redeploy from Git instead.
 - This repository does not store personal contact information for residents or operators.
 - Any required credentials must be supplied by the deploying user in their own environment.
 - Never commit real API keys, database passwords, access tokens, or private email credentials.
+- Guest-facing availability pages intentionally hide names, apartment numbers, email addresses, and profile pictures.
+- Managers and administrators can access private messages and user data for operational reasons; this should be disclosed to residents in your deployment.
 - Use HTTPS in production.
 - Set `APP_DEBUG=false` in production.
 - Restrict access to writable directories and keep regular backups.
@@ -477,7 +501,14 @@ In unsupported environments, redeploy from Git instead.
 
 - ensure `.env` is writable
 - ensure `storage/` is writable
+- ensure `public/uploads/` is writable
 - verify ownership for the web server user such as `www-data`
+
+### Image upload problems
+
+- upload only PNG, JPG/JPEG, or WEBP files
+- verify PHP upload size limits if larger images fail
+- ensure `public/uploads/` exists and is writable
 
 ### Missing PHP extensions
 

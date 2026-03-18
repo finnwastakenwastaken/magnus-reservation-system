@@ -25,6 +25,7 @@ final class PrivacyService
     private MailService $mail;
     private SettingsService $settings;
     private FileSystemService $files;
+    private ImageUploadService $images;
 
     public function __construct()
     {
@@ -33,6 +34,7 @@ final class PrivacyService
         $this->mail = new MailService();
         $this->settings = new SettingsService();
         $this->files = new FileSystemService();
+        $this->images = new ImageUploadService();
     }
 
     /**
@@ -253,6 +255,49 @@ final class PrivacyService
     }
 
     /**
+     * Replace the user's profile picture with a validated uploaded image.
+     */
+    public function updateProfilePicture(array $user, ?array $file): void
+    {
+        if ($file === null || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            throw new ValidationException(['profile_picture' => 'account.profile_picture_required']);
+        }
+
+        try {
+            $newPath = $this->images->store($file, 'avatars', 2 * 1024 * 1024);
+        } catch (\RuntimeException) {
+            throw new ValidationException(['profile_picture' => 'account.profile_picture_invalid']);
+        }
+
+        $current = $this->findUserById((int) $user['id']);
+        $stmt = $this->db->prepare(
+            'UPDATE users SET profile_picture_path = :profile_picture_path, updated_at = NOW() WHERE id = :id'
+        );
+        $stmt->execute([
+            'profile_picture_path' => $newPath,
+            'id' => $user['id'],
+        ]);
+
+        $this->images->deletePublicPath($current['profile_picture_path'] ?? null);
+        $this->audit->log((int) $user['id'], 'user.profile_picture_updated', 'user', (string) $user['id']);
+    }
+
+    public function removeProfilePicture(array $user): void
+    {
+        $current = $this->findUserById((int) $user['id']);
+        if ($current === null || empty($current['profile_picture_path'])) {
+            return;
+        }
+
+        $stmt = $this->db->prepare(
+            'UPDATE users SET profile_picture_path = NULL, updated_at = NOW() WHERE id = :id'
+        );
+        $stmt->execute(['id' => $user['id']]);
+        $this->images->deletePublicPath($current['profile_picture_path']);
+        $this->audit->log((int) $user['id'], 'user.profile_picture_removed', 'user', (string) $user['id']);
+    }
+
+    /**
      * Anonymize a self-deleted account while preserving linked reservations,
      * messages, and audit references needed for system integrity.
      *
@@ -289,6 +334,7 @@ final class PrivacyService
                      last_name = :last_name,
                      email = :email,
                      apartment_number = :apartment_number,
+                     profile_picture_path = NULL,
                      phone_number = NULL,
                      contact_notes = NULL,
                      show_phone_to_users = 0,
@@ -315,6 +361,7 @@ final class PrivacyService
                 'id' => $user['id'],
             ]);
 
+            $this->images->deletePublicPath($user['profile_picture_path'] ?? null);
             $this->db->commit();
         } catch (\Throwable $exception) {
             if ($this->db->inTransaction()) {
@@ -334,7 +381,7 @@ final class PrivacyService
     public function visibleResidents(int $viewerUserId): array
     {
         $stmt = $this->db->prepare(
-            'SELECT id, first_name, last_name, phone_number, contact_notes, show_phone_to_users, show_contact_notes_to_users
+            'SELECT id, first_name, last_name, profile_picture_path, phone_number, contact_notes, show_phone_to_users, show_contact_notes_to_users
              FROM users
              WHERE is_active = 1
                AND role = :role
@@ -351,6 +398,7 @@ final class PrivacyService
             return [
                 'id' => (int) $row['id'],
                 'display_name' => $row['first_name'] . ' ' . strtoupper(substr((string) $row['last_name'], 0, 1)) . '.',
+                'profile_picture_path' => $row['profile_picture_path'] ?: null,
                 'phone_number' => (int) $row['show_phone_to_users'] === 1 ? $row['phone_number'] : null,
                 'contact_notes' => (int) $row['show_contact_notes_to_users'] === 1 ? $row['contact_notes'] : null,
             ];
@@ -468,7 +516,7 @@ final class PrivacyService
     private function findUserForTransparency(int $id): ?array
     {
         $stmt = $this->db->prepare(
-            'SELECT id, first_name, last_name, email, apartment_number, role, is_active,
+            'SELECT id, first_name, last_name, email, apartment_number, profile_picture_path, role, is_active,
                     phone_number, contact_notes, show_phone_to_users,
                     show_contact_notes_to_users, pending_email, activated_at,
                     created_at, updated_at, last_login_at, deleted_at, anonymized_at
@@ -476,6 +524,14 @@ final class PrivacyService
              WHERE id = :id
              LIMIT 1'
         );
+        $stmt->execute(['id' => $id]);
+
+        return $stmt->fetch() ?: null;
+    }
+
+    private function findUserById(int $id): ?array
+    {
+        $stmt = $this->db->prepare('SELECT * FROM users WHERE id = :id LIMIT 1');
         $stmt->execute(['id' => $id]);
 
         return $stmt->fetch() ?: null;

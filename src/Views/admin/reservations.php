@@ -28,12 +28,15 @@ use App\Core\Csrf;
                         <td><?= htmlspecialchars(date('d-m-Y H:i', strtotime($reservation['end_datetime'])), ENT_QUOTES, 'UTF-8') ?></td>
                         <td><?= htmlspecialchars($reservation['status'], ENT_QUOTES, 'UTF-8') ?></td>
                         <td>
-                            <?php if ($reservation['status'] === 'active'): ?>
-                                <form method="post" action="/admin/reservations/<?= (int) $reservation['id'] ?>/cancel">
-                                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
-                                    <button class="btn btn-sm btn-outline-danger" type="submit"><?= htmlspecialchars($translator->get('reservation.cancel'), ENT_QUOTES, 'UTF-8') ?></button>
-                                </form>
-                            <?php endif; ?>
+                            <div class="d-flex gap-2">
+                                <?php if ($reservation['status'] === 'active'): ?>
+                                    <a class="btn btn-sm btn-outline-primary" href="/admin/reservations/<?= (int) $reservation['id'] ?>/edit"><?= htmlspecialchars($translator->get('reservation.edit'), ENT_QUOTES, 'UTF-8') ?></a>
+                                    <form method="post" action="/admin/reservations/<?= (int) $reservation['id'] ?>/cancel">
+                                        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
+                                        <button class="btn btn-sm btn-outline-danger" type="submit"><?= htmlspecialchars($translator->get('reservation.cancel'), ENT_QUOTES, 'UTF-8') ?></button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>

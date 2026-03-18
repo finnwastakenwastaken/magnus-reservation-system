@@ -67,6 +67,7 @@ final class App
         // follow without a framework or annotation system.
         $router->match(['GET', 'POST'], '/install', [InstallController::class, 'index']);
         $router->get('/', [HomeController::class, 'index']);
+        $router->get('/availability', [ReservationController::class, 'publicOverview']);
         $router->match(['GET', 'POST'], '/signup', [AuthController::class, 'signup']);
         $router->match(['GET', 'POST'], '/login', [AuthController::class, 'login']);
         $router->post('/logout', [AuthController::class, 'logout']);
@@ -77,6 +78,8 @@ final class App
         $router->post('/account/email-change', [AccountController::class, 'requestEmailChange']);
         $router->get('/account/email-change/confirm', [AccountController::class, 'confirmEmailChange']);
         $router->post('/account/password', [AccountController::class, 'changePassword']);
+        $router->post('/account/profile-picture', [AccountController::class, 'uploadProfilePicture']);
+        $router->post('/account/profile-picture/remove', [AccountController::class, 'removeProfilePicture']);
         $router->get('/account/export', [AccountController::class, 'export']);
         $router->post('/account/delete', [AccountController::class, 'delete']);
         $router->get('/residents', [ResidentController::class, 'index']);
@@ -88,12 +91,18 @@ final class App
         $router->match(['GET', 'POST'], '/messages/compose', [MessageController::class, 'compose']);
         $router->get('/admin', [AdminController::class, 'index']);
         $router->get('/admin/users', [AdminController::class, 'users']);
+        $router->post('/admin/users/{id}/role', [AdminController::class, 'updateRole']);
         $router->post('/admin/users/{id}/delete', [AdminController::class, 'deleteUser']);
         $router->post('/admin/users/{id}/reset-password', [AdminController::class, 'resetPassword']);
         $router->post('/admin/users/{id}/apartment', [AdminController::class, 'updateApartment']);
         $router->get('/admin/reservations', [AdminController::class, 'reservations']);
+        $router->match(['GET', 'POST'], '/admin/reservations/{id}/edit', [AdminController::class, 'editReservation']);
         $router->post('/admin/reservations/{id}/cancel', [AdminController::class, 'cancelReservation']);
+        $router->get('/admin/messages', [AdminController::class, 'messages']);
         $router->match(['GET', 'POST'], '/admin/settings', [AdminController::class, 'settings']);
+        $router->get('/admin/branding', [AdminController::class, 'branding']);
+        $router->post('/admin/branding/logo', [AdminController::class, 'uploadLogo']);
+        $router->post('/admin/branding/logo/reset', [AdminController::class, 'resetLogo']);
         $router->get('/admin/updates', [AdminController::class, 'updates']);
         $router->post('/admin/updates/check', [AdminController::class, 'checkUpdates']);
         $router->post('/admin/updates/install', [AdminController::class, 'installUpdate']);

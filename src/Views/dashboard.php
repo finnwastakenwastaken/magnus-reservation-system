@@ -2,7 +2,16 @@
 <div class="row g-4">
     <div class="col-12">
         <div class="card shadow-sm border-0"><div class="card-body">
-            <h1 class="h3"><?= htmlspecialchars($translator->get('dashboard.welcome', ['name' => $user['first_name']]), ENT_QUOTES, 'UTF-8') ?></h1>
+            <div class="d-flex align-items-center gap-3">
+                <?php if (!empty($user['profile_picture_path'])): ?>
+                    <img src="<?= htmlspecialchars($user['profile_picture_path'], ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($user['first_name'], ENT_QUOTES, 'UTF-8') ?>" class="rounded-circle" style="width:64px;height:64px;object-fit:cover;">
+                <?php else: ?>
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width:64px;height:64px;">
+                        <?= htmlspecialchars(strtoupper(substr((string) $user['first_name'], 0, 1)), ENT_QUOTES, 'UTF-8') ?>
+                    </div>
+                <?php endif; ?>
+                <h1 class="h3 mb-0"><?= htmlspecialchars($translator->get('dashboard.welcome', ['name' => $user['first_name']]), ENT_QUOTES, 'UTF-8') ?></h1>
+            </div>
         </div></div>
     </div>
     <div class="col-lg-6">
@@ -42,5 +51,24 @@
                 </div>
             <?php endif; ?>
         </div></div>
+    </div>
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><?= htmlspecialchars($translator->get('dashboard.notifications'), ENT_QUOTES, 'UTF-8') ?></h2>
+                <?php if (($notifications ?? []) === []): ?>
+                    <p class="text-secondary mb-0"><?= htmlspecialchars($translator->get('common.no_data'), ENT_QUOTES, 'UTF-8') ?></p>
+                <?php else: ?>
+                    <div class="list-group list-group-flush">
+                        <?php foreach ($notifications as $notification): ?>
+                            <div class="list-group-item px-0">
+                                <div class="fw-semibold"><?= htmlspecialchars($notification['title'], ENT_QUOTES, 'UTF-8') ?></div>
+                                <div class="small text-secondary"><?= htmlspecialchars($notification['body'], ENT_QUOTES, 'UTF-8') ?></div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
 </div>

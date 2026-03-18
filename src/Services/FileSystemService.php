@@ -77,4 +77,11 @@ final class FileSystemService
             }
         }
     }
+
+    public function deleteFileIfExists(string $path): void
+    {
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
 }

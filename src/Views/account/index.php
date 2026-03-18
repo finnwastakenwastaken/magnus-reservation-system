@@ -28,6 +28,33 @@ $storedUser = $accountData['user'] ?? $user;
         <div class="card shadow-sm border-0 h-100">
             <div class="card-body">
                 <h2 class="h5 mb-3"><?= htmlspecialchars($translator->get('account.data_overview'), ENT_QUOTES, 'UTF-8') ?></h2>
+                <div class="mb-4 d-flex align-items-center gap-3">
+                    <?php if (!empty($storedUser['profile_picture_path'])): ?>
+                        <img src="<?= htmlspecialchars($storedUser['profile_picture_path'], ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars((string) $storedUser['first_name'], ENT_QUOTES, 'UTF-8') ?>" class="rounded-circle" style="width:72px;height:72px;object-fit:cover;">
+                    <?php else: ?>
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width:72px;height:72px;">
+                            <?= htmlspecialchars(strtoupper(substr((string) $storedUser['first_name'], 0, 1)), ENT_QUOTES, 'UTF-8') ?>
+                        </div>
+                    <?php endif; ?>
+                    <div>
+                        <div class="fw-semibold"><?= htmlspecialchars($translator->get('account.profile_picture'), ENT_QUOTES, 'UTF-8') ?></div>
+                        <div class="small text-secondary"><?= htmlspecialchars($translator->get('account.profile_picture_notice'), ENT_QUOTES, 'UTF-8') ?></div>
+                    </div>
+                </div>
+                <form method="post" action="/account/profile-picture" enctype="multipart/form-data" class="mb-3">
+                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
+                    <div class="input-group">
+                        <input type="file" class="form-control <?= isset($errors['profile_picture']) ? 'is-invalid' : '' ?>" name="profile_picture" accept=".png,.jpg,.jpeg,.webp">
+                        <button class="btn btn-outline-primary" type="submit"><?= htmlspecialchars($translator->get('account.upload_picture'), ENT_QUOTES, 'UTF-8') ?></button>
+                    </div>
+                    <?php if (isset($errors['profile_picture'])): ?><div class="invalid-feedback d-block"><?= htmlspecialchars($translator->get($errors['profile_picture']), ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+                </form>
+                <?php if (!empty($storedUser['profile_picture_path'])): ?>
+                    <form method="post" action="/account/profile-picture/remove" class="mb-4">
+                        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
+                        <button class="btn btn-sm btn-outline-danger" type="submit"><?= htmlspecialchars($translator->get('account.remove_picture'), ENT_QUOTES, 'UTF-8') ?></button>
+                    </form>
+                <?php endif; ?>
                 <dl class="row mb-0">
                     <dt class="col-sm-5"><?= htmlspecialchars($translator->get('auth.first_name'), ENT_QUOTES, 'UTF-8') ?></dt>
                     <dd class="col-sm-7"><?= htmlspecialchars((string) $storedUser['first_name'], ENT_QUOTES, 'UTF-8') ?></dd>

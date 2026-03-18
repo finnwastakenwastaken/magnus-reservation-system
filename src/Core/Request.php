@@ -11,6 +11,7 @@ final class Request
         private readonly string $path,
         private readonly array $query,
         private readonly array $request,
+        private readonly array $files,
         private readonly array $server
     ) {
     }
@@ -24,6 +25,7 @@ final class Request
             rtrim($path, '/') ?: '/',
             $_GET,
             $_POST,
+            $_FILES,
             $_SERVER
         );
     }
@@ -46,6 +48,19 @@ final class Request
     public function all(): array
     {
         return array_merge($this->query, $this->request);
+    }
+
+    /**
+     * Return an uploaded file entry from $_FILES.
+     *
+     * The raw PHP upload array is returned so services can perform their own
+     * MIME/type validation instead of trusting the browser-provided metadata.
+     */
+    public function file(string $key): ?array
+    {
+        $file = $this->files[$key] ?? null;
+
+        return is_array($file) ? $file : null;
     }
 
     public function server(string $key, mixed $default = null): mixed
