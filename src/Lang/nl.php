@@ -170,6 +170,7 @@ return [
     'account.password_changed' => 'Wachtwoord gewijzigd.',
     'account.delete_account' => 'Account verwijderen',
     'account.delete_explainer' => 'Het verwijderen van je account schakelt toekomstige login uit, annuleert toekomstige reserveringen en anonimiseert je profielgegevens. Historische reserveringen, berichten en auditverwijzingen kunnen in geanonimiseerde vorm worden bewaard voor systeemintegriteit en legitiem beheer.',
+    'account.delete_admin_notice' => 'Beheerdersaccounts kunnen niet via de normale accountpagina worden verwijderd. Gebruik hiervoor een apart beheeroverdrachtsproces.',
     'account.delete_confirm_label' => 'Ik begrijp dat deze actie permanent is en dat mijn toekomstige reserveringen worden geannuleerd.',
     'account.delete_confirm_required' => 'Je moet bevestigen dat je de gevolgen van verwijdering begrijpt.',
     'account.delete_admin_blocked' => 'Beheerdersaccounts kunnen niet via de bewonersaccountpagina worden verwijderd.',

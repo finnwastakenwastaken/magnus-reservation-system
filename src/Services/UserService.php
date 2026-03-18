@@ -169,11 +169,15 @@ final class UserService
             'SELECT id, first_name, last_name
              FROM users
              WHERE is_active = 1
+               AND role = :role
                AND deleted_at IS NULL
                AND id <> :id
              ORDER BY first_name, last_name'
         );
-        $stmt->execute(['id' => $excludeUserId]);
+        $stmt->execute([
+            'role' => 'user',
+            'id' => $excludeUserId,
+        ]);
 
         return $stmt->fetchAll();
     }

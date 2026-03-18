@@ -336,10 +336,16 @@ final class PrivacyService
         $stmt = $this->db->prepare(
             'SELECT id, first_name, last_name, phone_number, contact_notes, show_phone_to_users, show_contact_notes_to_users
              FROM users
-             WHERE is_active = 1 AND deleted_at IS NULL AND id <> :id
+             WHERE is_active = 1
+               AND role = :role
+               AND deleted_at IS NULL
+               AND id <> :id
              ORDER BY first_name, last_name'
         );
-        $stmt->execute(['id' => $viewerUserId]);
+        $stmt->execute([
+            'role' => 'user',
+            'id' => $viewerUserId,
+        ]);
 
         return array_map(static function (array $row): array {
             return [

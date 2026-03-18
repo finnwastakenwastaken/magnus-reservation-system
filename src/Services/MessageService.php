@@ -104,8 +104,18 @@ final class MessageService
 
     private function findUser(int $id): ?array
     {
-        $stmt = $this->db->prepare('SELECT * FROM users WHERE id = :id LIMIT 1');
-        $stmt->execute(['id' => $id]);
+        $stmt = $this->db->prepare(
+            'SELECT *
+             FROM users
+             WHERE id = :id
+               AND role = :role
+               AND deleted_at IS NULL
+             LIMIT 1'
+        );
+        $stmt->execute([
+            'id' => $id,
+            'role' => 'user',
+        ]);
         return $stmt->fetch() ?: null;
     }
 }

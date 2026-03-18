@@ -140,22 +140,26 @@ $storedUser = $accountData['user'] ?? $user;
         <div class="card shadow-sm border-danger">
             <div class="card-body">
                 <h2 class="h5 mb-3 text-danger"><?= htmlspecialchars($translator->get('account.delete_account'), ENT_QUOTES, 'UTF-8') ?></h2>
-                <p class="text-secondary"><?= htmlspecialchars($translator->get('account.delete_explainer'), ENT_QUOTES, 'UTF-8') ?></p>
-                <form method="post" action="/account/delete">
-                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
-                    <div class="mb-3">
-                        <label class="form-label"><?= htmlspecialchars($translator->get('account.current_password_confirm'), ENT_QUOTES, 'UTF-8') ?></label>
-                        <input type="password" class="form-control <?= isset($errors['delete_password']) ? 'is-invalid' : '' ?>" name="delete_password">
-                        <?php if (isset($errors['delete_password'])): ?><div class="invalid-feedback"><?= htmlspecialchars($translator->get($errors['delete_password']), ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
-                    </div>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input <?= isset($errors['delete_confirm']) ? 'is-invalid' : '' ?>" type="checkbox" value="1" id="delete_confirm" name="delete_confirm" <?= !empty($old['delete_confirm']) ? 'checked' : '' ?>>
-                        <label class="form-check-label" for="delete_confirm"><?= htmlspecialchars($translator->get('account.delete_confirm_label'), ENT_QUOTES, 'UTF-8') ?></label>
-                        <?php if (isset($errors['delete_confirm'])): ?><div class="invalid-feedback"><?= htmlspecialchars($translator->get($errors['delete_confirm']), ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
-                    </div>
-                    <?php if (isset($errors['delete_account'])): ?><div class="alert alert-warning"><?= htmlspecialchars($translator->get($errors['delete_account']), ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
-                    <button class="btn btn-danger" type="submit"><?= htmlspecialchars($translator->get('account.delete_account'), ENT_QUOTES, 'UTF-8') ?></button>
-                </form>
+                <?php if (($storedUser['role'] ?? 'user') === 'admin'): ?>
+                    <div class="alert alert-warning mb-0"><?= htmlspecialchars($translator->get('account.delete_admin_notice'), ENT_QUOTES, 'UTF-8') ?></div>
+                <?php else: ?>
+                    <p class="text-secondary"><?= htmlspecialchars($translator->get('account.delete_explainer'), ENT_QUOTES, 'UTF-8') ?></p>
+                    <form method="post" action="/account/delete">
+                        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
+                        <div class="mb-3">
+                            <label class="form-label"><?= htmlspecialchars($translator->get('account.current_password_confirm'), ENT_QUOTES, 'UTF-8') ?></label>
+                            <input type="password" class="form-control <?= isset($errors['delete_password']) ? 'is-invalid' : '' ?>" name="delete_password">
+                            <?php if (isset($errors['delete_password'])): ?><div class="invalid-feedback"><?= htmlspecialchars($translator->get($errors['delete_password']), ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input <?= isset($errors['delete_confirm']) ? 'is-invalid' : '' ?>" type="checkbox" value="1" id="delete_confirm" name="delete_confirm" <?= !empty($old['delete_confirm']) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="delete_confirm"><?= htmlspecialchars($translator->get('account.delete_confirm_label'), ENT_QUOTES, 'UTF-8') ?></label>
+                            <?php if (isset($errors['delete_confirm'])): ?><div class="invalid-feedback"><?= htmlspecialchars($translator->get($errors['delete_confirm']), ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+                        </div>
+                        <?php if (isset($errors['delete_account'])): ?><div class="alert alert-warning"><?= htmlspecialchars($translator->get($errors['delete_account']), ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+                        <button class="btn btn-danger" type="submit"><?= htmlspecialchars($translator->get('account.delete_account'), ENT_QUOTES, 'UTF-8') ?></button>
+                    </form>
+                <?php endif; ?>
             </div>
         </div>
     </div>

@@ -170,6 +170,7 @@ return [
     'account.password_changed' => 'Password changed.',
     'account.delete_account' => 'Delete account',
     'account.delete_explainer' => 'Deleting your account disables future login, cancels future reservations, and anonymizes your personal profile data. Historic reservations, messages, and audit references may be kept in anonymized form for system integrity and legitimate administration.',
+    'account.delete_admin_notice' => 'Administrator accounts cannot be deleted from the normal account page. Use a separate administrative handover process instead.',
     'account.delete_confirm_label' => 'I understand that this action is permanent and that my future reservations will be cancelled.',
     'account.delete_confirm_required' => 'You must confirm that you understand the deletion consequences.',
     'account.delete_admin_blocked' => 'Administrator accounts cannot be self-deleted through the resident account page.',
