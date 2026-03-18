@@ -1,6 +1,7 @@
 .git
 .idea
 .env
+storage/config/app.env
 public/uploads
 storage/cache
 storage/backups

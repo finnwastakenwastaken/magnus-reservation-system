@@ -24,8 +24,43 @@ final class EnvWriter
         }
 
         $content = implode(PHP_EOL, $lines) . PHP_EOL;
-        if (@file_put_contents(app_env_path(), $content) === false) {
-            throw new \RuntimeException('Unable to write the .env file. Check file permissions.');
+        $path = $this->resolveWritableEnvPath();
+        if (@file_put_contents($path, $content) === false) {
+            throw new \RuntimeException('Unable to write the environment config file. Check project or storage/config permissions.');
         }
+    }
+
+    /**
+     * Prefer the traditional root `.env` file, but fall back to a writable
+     * storage path for Docker bind mounts where the web server cannot create
+     * new files in the repository root.
+     */
+    private function resolveWritableEnvPath(): string
+    {
+        $primary = app_primary_env_path();
+        if ($this->isWritableTarget($primary)) {
+            return $primary;
+        }
+
+        $fallback = app_fallback_env_path();
+        $fallbackDir = dirname($fallback);
+        if (!is_dir($fallbackDir) && !@mkdir($fallbackDir, 0775, true) && !is_dir($fallbackDir)) {
+            throw new \RuntimeException('Unable to prepare the fallback config directory under storage/config.');
+        }
+
+        if ($this->isWritableTarget($fallback)) {
+            return $fallback;
+        }
+
+        throw new \RuntimeException('Unable to write configuration to either `.env` or `storage/config/app.env`.');
+    }
+
+    private function isWritableTarget(string $path): bool
+    {
+        if (is_file($path)) {
+            return is_writable($path);
+        }
+
+        return is_dir(dirname($path)) && is_writable(dirname($path));
     }
 }

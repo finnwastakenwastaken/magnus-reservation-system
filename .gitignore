@@ -1,5 +1,6 @@
 .env
 .idea/
+/storage/config/app.env
 /storage/logs/*.log
 /storage/logs/update-status.json
 /storage/cache/*
@@ -10,6 +11,8 @@
 /storage/updates/*
 /public/uploads/*
 !/storage/cache/.gitkeep
+/storage/config/*
+!/storage/config/.gitkeep
 !/storage/logs/.gitkeep
 !/storage/backups/.gitkeep
 !/storage/updates/.gitkeep

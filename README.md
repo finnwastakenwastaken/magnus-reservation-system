@@ -18,7 +18,7 @@ Historical non-Docker deployment guides have been removed from the project and a
 - Role and permission management for residents, managers, and administrators
 - Admin-managed branding logo and user profile pictures
 - Bilingual Dutch/English interface
-- First-run installer that writes `.env` and creates the first administrator
+- First-run installer that writes runtime config and creates the first administrator
 
 ## Feature Summary
 
@@ -86,7 +86,7 @@ In the installer:
 
 After a successful install:
 
-- `.env` is written in the project root
+- config is written to `.env` when the project root is writable, otherwise to `storage/config/app.env`
 - `storage/installed.lock` is created
 - `/install` is blocked until you intentionally reset the install state
 
@@ -146,7 +146,7 @@ If installation fails midway:
 2. fix the underlying issue
 3. retry `/install`
 
-To rerun the installer in development, remove `.env` and `storage/installed.lock`, then restart the stack.
+To rerun the installer in development, remove `.env` or `storage/config/app.env` if present, remove `storage/installed.lock`, and then restart the stack.
 
 ## Usage
 
@@ -181,7 +181,7 @@ docker compose exec app sh
 ### Data Persistence
 
 - MariaDB data is stored in the named volume `mariadb_data`
-- application state such as `.env`, logs, backups, and uploads is stored in the project working tree because the repository is mounted into the app container
+- application state such as generated config, logs, backups, and uploads is stored in the project working tree because the repository is mounted into the app container
 
 Do not run `docker compose down -v` unless you intentionally want to delete the database volume.
 
@@ -238,7 +238,7 @@ If an update breaks the stack:
 
 ## Privacy and Security Notes
 
-- Keep `.env` out of version control.
+- Keep `.env` and `storage/config/app.env` out of version control.
 - The included `.env.example` file is safe to publish and should be used only as a template.
 - This repository does not include real resident data, contact data, API keys, or private credentials.
 - Guest-facing reservation pages intentionally hide names, apartment numbers, email addresses, and profile pictures.
@@ -266,6 +266,7 @@ If an update breaks the stack:
 
 - verify the project directory is writable on the host
 - confirm `storage/` and `public/uploads/` exist
+- the installer can fall back to `storage/config/app.env` if the project root is not writable
 - rebuild the stack after permission fixes
 
 ### Image Uploads Fail
