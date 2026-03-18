@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Core\Auth;
 use App\Core\Csrf;
 
 $t = static fn(string $key, array $replace = []): string => $translator->get($key, $replace);
+$isAuthenticated = $auth !== null;
 ?>
 <!doctype html>
 <html lang="<?= htmlspecialchars($translator->locale(), ENT_QUOTES, 'UTF-8') ?>">
@@ -26,7 +26,7 @@ $t = static fn(string $key, array $replace = []): string => $translator->get($ke
         <div class="collapse navbar-collapse" id="navMain">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item"><a class="nav-link" href="/"><?= htmlspecialchars($t('nav.home'), ENT_QUOTES, 'UTF-8') ?></a></li>
-                <?php if (Auth::check()): ?>
+                <?php if ($isAuthenticated): ?>
                     <li class="nav-item"><a class="nav-link" href="/dashboard"><?= htmlspecialchars($t('nav.dashboard'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/reservations"><?= htmlspecialchars($t('nav.reservations'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/messages/inbox"><?= htmlspecialchars($t('nav.messages'), ENT_QUOTES, 'UTF-8') ?></a></li>
@@ -38,7 +38,7 @@ $t = static fn(string $key, array $replace = []): string => $translator->get($ke
             <div class="d-flex gap-2 align-items-center">
                 <a class="btn btn-sm btn-outline-light" href="/lang/en">EN</a>
                 <a class="btn btn-sm btn-outline-light" href="/lang/nl">NL</a>
-                <?php if (Auth::check()): ?>
+                <?php if ($isAuthenticated): ?>
                     <form action="/logout" method="post" class="d-inline">
                         <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
                         <button class="btn btn-sm btn-warning" type="submit"><?= htmlspecialchars($t('nav.logout'), ENT_QUOTES, 'UTF-8') ?></button>

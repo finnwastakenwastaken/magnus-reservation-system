@@ -1,5 +1,7 @@
 services:
   app:
+    # Mutable local development/deployment stack. Production container platforms
+    # should rebuild from GitHub instead of using the in-app self-updater.
     build:
       context: .
       dockerfile: Dockerfile
@@ -13,6 +15,8 @@ services:
     restart: unless-stopped
 
   db:
+    # MariaDB data is stored in a named volume so container recreation does not
+    # wipe reservations, users, or installer-created schema state.
     image: mariadb:11.4
     container_name: living-room-db
     environment:

@@ -1,5 +1,7 @@
 FROM php:8.3-apache
 
+# The container is intentionally simple: Apache serves /public and PHP only
+# needs PDO MySQL plus rewrite support for this application.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends default-mysql-client \
     && docker-php-ext-install pdo pdo_mysql \

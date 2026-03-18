@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Prepares a fresh Ubuntu VPS with the packages used by the documented
+# Nginx/PHP-FPM/MariaDB deployment path from the README.
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get update

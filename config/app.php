@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Central configuration map built from environment variables.
+ *
+ * Keeping configuration in one place makes it easier for the installer,
+ * deployment docs, and updater to stay aligned about supported settings.
+ */
+
 return [
     'app' => [
         'name' => $_ENV['APP_NAME'] ?? 'Shared Living Room Reservations',

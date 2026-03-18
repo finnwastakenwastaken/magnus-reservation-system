@@ -125,6 +125,7 @@ final class InstallerService
             'APP_ENV' => $_ENV['APP_ENV'] ?? 'production',
             'APP_DEBUG' => $_ENV['APP_DEBUG'] ?? 'false',
             'APP_INSTALLED' => 'true',
+            'APP_VERSION' => $_ENV['APP_VERSION'] ?? (is_file(BASE_PATH . '/VERSION') ? trim((string) file_get_contents(BASE_PATH . '/VERSION')) : '0.1.0'),
             'APP_URL' => $appUrl,
             'APP_TIMEZONE' => $_ENV['APP_TIMEZONE'] ?? 'Europe/Amsterdam',
             'APP_LOCALE' => $_ENV['APP_LOCALE'] ?? 'en',
@@ -145,6 +146,14 @@ final class InstallerService
             'MAIL_FROM_NAME' => $_ENV['MAIL_FROM_NAME'] ?? 'Living Room App',
             'TURNSTILE_SITE_KEY' => $_ENV['TURNSTILE_SITE_KEY'] ?? '',
             'TURNSTILE_SECRET_KEY' => $_ENV['TURNSTILE_SECRET_KEY'] ?? '',
+            'UPDATE_ENABLED' => $_ENV['UPDATE_ENABLED'] ?? 'true',
+            'UPDATE_REPOSITORY_URL' => $_ENV['UPDATE_REPOSITORY_URL'] ?? '',
+            'UPDATE_REPOSITORY_BRANCH' => $_ENV['UPDATE_REPOSITORY_BRANCH'] ?? 'main',
+            'UPDATE_STRATEGY' => $_ENV['UPDATE_STRATEGY'] ?? 'auto',
+            'UPDATE_GIT_BIN' => $_ENV['UPDATE_GIT_BIN'] ?? 'git',
+            'UPDATE_CHECK_AUTOMATIC' => $_ENV['UPDATE_CHECK_AUTOMATIC'] ?? 'false',
+            'UPDATE_BACKUP_PATH' => $_ENV['UPDATE_BACKUP_PATH'] ?? 'storage/backups',
+            'UPDATE_TEMP_PATH' => $_ENV['UPDATE_TEMP_PATH'] ?? 'storage/updates',
         ]);
 
         $lockPath = BASE_PATH . '/storage/installed.lock';

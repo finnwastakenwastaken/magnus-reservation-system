@@ -46,7 +46,7 @@ if ($installed && app_is_maintenance($config)) {
         $user = Auth::user();
         $adminCanPass = $user !== null
             && ($user['role'] ?? '') === 'admin'
-            && (str_starts_with($normalizedPath, '/admin/updates') || $normalizedPath === '/login');
+            && (str_starts_with($normalizedPath, '/admin/updates') || $normalizedPath === '/login' || str_starts_with($normalizedPath, '/assets/'));
     } catch (\Throwable) {
         $adminCanPass = false;
     }
