@@ -1,0 +1,14 @@
+.env
+.idea/
+/storage/logs/*.log
+/storage/logs/update-status.json
+/storage/cache/*
+/storage/installed.lock
+/storage/maintenance.lock
+/storage/update.lock
+/storage/backups/*
+/storage/updates/*
+/storage/cache/.gitkeep
+/storage/logs/.gitkeep
+/storage/backups/.gitkeep
+/storage/updates/.gitkeep

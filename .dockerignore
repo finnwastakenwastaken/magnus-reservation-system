@@ -1,0 +1,6 @@
+.git
+.idea
+.env
+storage/logs/*.log
+storage/installed.lock
+README.md
