@@ -40,21 +40,16 @@ final class MigrationService
                 throw new \RuntimeException("Unable to read migration file: {$name}");
             }
 
-            $this->db->beginTransaction();
-            try {
-                foreach ($this->splitSql($sql) as $statement) {
-                    $this->db->exec($statement);
-                }
-                $stmt = $this->db->prepare('INSERT INTO migrations (migration_name, applied_at) VALUES (:migration_name, NOW())');
-                $stmt->execute(['migration_name' => $name]);
-                $this->db->commit();
-                $executed[] = $name;
-            } catch (\Throwable $exception) {
-                if ($this->db->inTransaction()) {
-                    $this->db->rollBack();
-                }
-                throw $exception;
+            // MariaDB does not provide reliable transactional DDL for the
+            // CREATE/ALTER statements used by this project. Execute the SQL
+            // file sequentially and only record it as applied after every
+            // statement succeeds.
+            foreach ($this->splitSql($sql) as $statement) {
+                $this->db->exec($statement);
             }
+            $stmt = $this->db->prepare('INSERT INTO migrations (migration_name, applied_at) VALUES (:migration_name, NOW())');
+            $stmt->execute(['migration_name' => $name]);
+            $executed[] = $name;
         }
 
         return $executed;

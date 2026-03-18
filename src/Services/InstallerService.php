@@ -84,15 +84,14 @@ final class InstallerService
             throw new \RuntimeException('Connected to the server, but could not open the selected database.');
         }
 
-        $pdo->beginTransaction();
         try {
-            // The baseline schema is still imported for fresh installs so the
-            // installer remains simple. After importing the latest schema we
-            // mark shipped migration files as already applied, because the
-            // baseline already contains those changes.
+            // MariaDB auto-commits DDL statements such as CREATE TABLE, so the
+            // baseline schema import must run outside an explicit transaction.
+            // The first-admin bootstrap below still uses its own transaction.
             $this->runSchema($pdo, BASE_PATH . '/database/schema.sql');
             (new MigrationService($pdo))->markAllAsApplied();
 
+            $pdo->beginTransaction();
             $adminRoleStmt = $pdo->prepare('SELECT id FROM roles WHERE slug = :slug LIMIT 1');
             $adminRoleStmt->execute(['slug' => 'admin']);
             $adminRoleId = $adminRoleStmt->fetchColumn();
