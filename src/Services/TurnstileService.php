@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Core\Container;
-
 /**
  * Cloudflare Turnstile verification wrapper.
  *
@@ -14,14 +12,21 @@ use App\Core\Container;
  */
 final class TurnstileService
 {
+    private SettingsService $settings;
+
+    public function __construct()
+    {
+        $this->settings = new SettingsService();
+    }
+
     public function enabled(): bool
     {
-        return (bool) Container::get('config')['turnstile']['enabled'];
+        return $this->settings->turnstileConfig()['enabled'];
     }
 
     public function siteKey(): string
     {
-        return (string) Container::get('config')['turnstile']['site_key'];
+        return $this->settings->turnstileConfig()['site_key'];
     }
 
     public function verify(?string $token, ?string $remoteIp = null): bool
@@ -35,7 +40,7 @@ final class TurnstileService
         }
 
         $payload = http_build_query([
-            'secret' => Container::get('config')['turnstile']['secret_key'],
+            'secret' => $this->settings->turnstileConfig()['secret_key'],
             'response' => $token,
             'remoteip' => $remoteIp,
         ]);

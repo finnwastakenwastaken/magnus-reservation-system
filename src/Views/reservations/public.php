@@ -5,7 +5,15 @@ $calendarPayload = [
     'feedUrl' => '/availability/feed',
     'locale' => $translator->locale(),
     'rules' => $calendarRules ?? [],
-    'messages' => [],
+    'messages' => [
+        'today' => $translator->get('reservation.today'),
+        'day' => $translator->get('reservation.view_day'),
+        'week' => $translator->get('reservation.view_week'),
+        'list' => $translator->get('reservation.view_list'),
+        'loading' => $translator->get('reservation.loading'),
+        'noEvents' => $translator->get('reservation.no_events'),
+        'genericError' => $translator->get('errors.500'),
+    ],
 ];
 ?>
 <div class="calendar-page">

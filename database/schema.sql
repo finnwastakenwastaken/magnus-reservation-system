@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS reservations (
 CREATE TABLE IF NOT EXISTS messages (
     -- Internal messages between active residents.
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    conversation_key VARCHAR(191) NOT NULL,
     sender_user_id INT UNSIGNED NOT NULL,
     recipient_user_id INT UNSIGNED NOT NULL,
     subject VARCHAR(190) NOT NULL,
@@ -99,6 +100,7 @@ CREATE TABLE IF NOT EXISTS messages (
     read_at DATETIME DEFAULT NULL,
     CONSTRAINT fk_messages_sender FOREIGN KEY (sender_user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_messages_recipient FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    KEY idx_messages_conversation_created (conversation_key, created_at),
     KEY idx_messages_recipient_created (recipient_user_id, created_at),
     KEY idx_messages_sender_created (sender_user_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -179,6 +181,14 @@ INSERT INTO settings (`key`, `value`, updated_at) VALUES
 ('max_hours_per_month', '12', NOW()),
 ('timezone', 'Europe/Amsterdam', NOW()),
 ('site_logo_path', '', NOW()),
+('mailjet_enabled', '0', NOW()),
+('mailjet_api_key', '', NOW()),
+('mailjet_api_secret', '', NOW()),
+('mail_from_email', 'no-reply@example.com', NOW()),
+('mail_from_name', 'Living Room App', NOW()),
+('turnstile_enabled', '0', NOW()),
+('turnstile_site_key', '', NOW()),
+('turnstile_secret_key', '', NOW()),
 ('retention_unactivated_days', '60', NOW()),
 ('retention_password_reset_days', '30', NOW()),
 ('retention_rate_limit_days', '30', NOW()),
@@ -192,11 +202,14 @@ INSERT INTO permissions (code, name, description, created_at) VALUES
 ('users.view', 'View users', 'View user lists and resident account information.', NOW()),
 ('users.edit', 'Edit users', 'Update apartment assignment and other admin-managed user fields.', NOW()),
 ('users.delete', 'Delete users', 'Anonymize and delete resident accounts.', NOW()),
+('users.verify', 'Verify users', 'Manually activate pending resident accounts.', NOW()),
 ('users.assign_roles', 'Assign roles', 'Assign a primary role to a user.', NOW()),
 ('reservations.view_all', 'View all reservations', 'View all reservation records in the staff area.', NOW()),
 ('reservations.manage_all', 'Manage all reservations', 'Edit or cancel any reservation.', NOW()),
 ('settings.manage', 'Manage reservation settings', 'Update booking hours and reservation limits.', NOW()),
+('integrations.manage', 'Manage integrations', 'Configure Mailjet and Cloudflare Turnstile settings.', NOW()),
 ('messages.view_private', 'Review private messages', 'Access private message oversight for operational reasons.', NOW()),
+('messages.broadcast', 'Broadcast messages', 'Send admin announcements to all users or selected roles.', NOW()),
 ('branding.manage', 'Manage branding', 'Upload or reset the site logo.', NOW()),
 ('updates.manage', 'Manage updates', 'Check, install, and roll back in-app updates.', NOW()),
 ('roles.manage', 'Manage roles and permissions', 'Create, edit, and delete custom roles and permission mappings.', NOW())
@@ -219,6 +232,7 @@ FROM roles r
 INNER JOIN permissions p ON p.code IN (
     'admin.access',
     'users.view',
+    'users.verify',
     'reservations.view_all',
     'reservations.manage_all',
     'messages.view_private'
@@ -234,11 +248,14 @@ INNER JOIN permissions p ON p.code IN (
     'users.view',
     'users.edit',
     'users.delete',
+    'users.verify',
     'users.assign_roles',
     'reservations.view_all',
     'reservations.manage_all',
     'settings.manage',
+    'integrations.manage',
     'messages.view_private',
+    'messages.broadcast',
     'branding.manage',
     'updates.manage',
     'roles.manage'

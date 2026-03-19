@@ -23,6 +23,7 @@ final class UserService
     private MailService $mail;
     private ImageUploadService $images;
     private RoleService $roles;
+    private NotificationService $notifications;
 
     public function __construct(?AuditService $audit = null, ?MailService $mail = null)
     {
@@ -31,15 +32,17 @@ final class UserService
         $this->mail = $mail ?? new MailService();
         $this->images = new ImageUploadService();
         $this->roles = new RoleService();
+        $this->notifications = new NotificationService();
     }
 
     /**
      * Create a new inactive resident and generate a mailbox activation code.
      *
-     * Returns the plaintext activation code for operational use at signup time.
-     * The database only stores a secure password hash of the code.
+     * The plaintext activation code is never returned to the registering user.
+     * It remains an internal operational secret intended for physical mailbox
+     * delivery by building staff.
      */
-    public function createUser(array $input, string $locale): string
+    public function createUser(array $input, string $locale): void
     {
         $errors = [];
         $firstName = trim((string) ($input['first_name'] ?? ''));
@@ -107,7 +110,6 @@ final class UserService
         $this->audit->log($userId, 'user.signup', 'user', (string) $userId, ['email' => $email]);
         $this->mail->notifyAdminNewSignup($user, $locale);
 
-        return $activationCode;
     }
 
     /**
@@ -392,6 +394,49 @@ final class UserService
 
         $this->audit->log($actorUserId, 'admin.apartment_updated', 'user', (string) $id, [
             'apartment_number' => trim($apartmentNumber),
+        ]);
+    }
+
+    /**
+     * Manually activate a pending account without using the mailbox code.
+     *
+     * This flow is permission-gated and logged because it overrides the normal
+     * resident-side activation process.
+     */
+    public function manualVerify(int $id, int $actorUserId, string $locale): void
+    {
+        $target = $this->findById($id);
+        if ($target === null) {
+            throw new \RuntimeException('User not found.');
+        }
+        $this->assertMayManageTarget($actorUserId, $target);
+        if ((int) $target['is_active'] === 1) {
+            return;
+        }
+
+        $stmt = $this->db->prepare(
+            'UPDATE users
+             SET is_active = 1,
+                 activation_code_hash = NULL,
+                 activation_code_created_at = NULL,
+                 activated_at = NOW(),
+                 updated_at = NOW()
+             WHERE id = :id'
+        );
+        $stmt->execute(['id' => $id]);
+
+        $this->notifications->create(
+            $id,
+            'account_verified',
+            $locale === 'nl' ? 'Account geactiveerd' : 'Account verified',
+            $locale === 'nl'
+                ? 'Je account is handmatig geactiveerd door het beheer. Je kunt nu inloggen.'
+                : 'Your account has been manually verified by staff. You can now sign in.',
+            '/login'
+        );
+        $this->mail->notifyUserVerified($target, $locale);
+        $this->audit->log($actorUserId, 'admin.user_verified', 'user', (string) $id, [
+            'previously_active' => false,
         ]);
     }
 

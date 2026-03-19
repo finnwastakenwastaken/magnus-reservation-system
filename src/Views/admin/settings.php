@@ -7,6 +7,7 @@ use App\Core\Csrf;
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
                 <h1 class="h3 mb-4"><?= htmlspecialchars($translator->get('admin.settings'), ENT_QUOTES, 'UTF-8') ?></h1>
+                <p class="text-secondary mb-4"><?= htmlspecialchars($translator->get('admin.settings_notice'), ENT_QUOTES, 'UTF-8') ?></p>
                 <form method="post">
                     <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
                     <div class="mb-3">

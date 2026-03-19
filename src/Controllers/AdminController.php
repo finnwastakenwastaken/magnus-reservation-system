@@ -43,8 +43,11 @@ final class AdminController extends Controller
             'canViewUsers' => Auth::hasPermission(Permissions::USERS_VIEW),
             'canViewReservations' => Auth::hasPermission(Permissions::RESERVATIONS_VIEW_ALL),
             'canViewMessages' => Auth::hasPermission(Permissions::MESSAGES_VIEW_PRIVATE),
+            'canVerifyUsers' => Auth::hasPermission(Permissions::USERS_VERIFY),
+            'canBroadcastMessages' => Auth::hasPermission(Permissions::MESSAGES_BROADCAST),
             'canManageRoles' => Auth::hasPermission(Permissions::ROLES_MANAGE),
             'canManageSettings' => Auth::hasPermission(Permissions::SETTINGS_MANAGE),
+            'canManageIntegrations' => Auth::hasPermission(Permissions::INTEGRATIONS_MANAGE),
             'canManageBranding' => Auth::hasPermission(Permissions::BRANDING_MANAGE),
             'canManageUpdates' => Auth::hasPermission(Permissions::UPDATES_MANAGE),
         ]);
@@ -70,8 +73,26 @@ final class AdminController extends Controller
             'canEditUsers' => Auth::hasPermission(Permissions::USERS_EDIT),
             'canAssignRoles' => Auth::hasPermission(Permissions::USERS_ASSIGN_ROLES),
             'canDeleteUsers' => Auth::hasPermission(Permissions::USERS_DELETE),
+            'canVerifyUsers' => Auth::hasPermission(Permissions::USERS_VERIFY),
             'currentUserIsSuperAdmin' => (int) (Auth::user()['is_super_admin'] ?? 0) === 1,
         ]);
+    }
+
+    public function verifyUser(Request $request, array $params): Response
+    {
+        Auth::requirePermission(Permissions::USERS_VERIFY);
+        Validator::requireCsrf($request);
+
+        try {
+            (new UserService())->manualVerify((int) $params['id'], (int) Auth::user()['id'], \App\Core\Container::get('translator')->locale());
+            Flash::add('success', \App\Core\Container::get('translator')->get('admin.user_verified'));
+        } catch (\Throwable $exception) {
+            Flash::add('danger', $exception instanceof ValidationException
+                ? \App\Core\Container::get('translator')->get($exception->errors()['role_id'] ?? 'validation.role_invalid')
+                : $exception->getMessage());
+        }
+
+        return $this->redirect('/admin/users');
     }
 
     public function updateRole(Request $request, array $params): Response
@@ -207,12 +228,68 @@ final class AdminController extends Controller
     {
         Auth::requirePermission(Permissions::MESSAGES_VIEW_PRIVATE);
         $page = max(1, (int) $request->input('page', 1));
-        $data = (new MessageService())->paginatedAll($page, 15);
-        (new AuditService())->log((int) Auth::user()['id'], 'staff.messages_oversight_viewed', 'message', 'list', ['page' => $page]);
+        $data = (new MessageService())->conversationSummariesForAdmin($page, 15);
+        (new AuditService())->log((int) Auth::user()['id'], 'staff.messages_oversight_list_viewed', 'conversation', 'list', ['page' => $page]);
 
         return $this->view('admin/messages', $data + [
             'page' => $page,
             'perPage' => 15,
+        ]);
+    }
+
+    public function messageThread(Request $request, array $params): Response
+    {
+        Auth::requirePermission(Permissions::MESSAGES_VIEW_PRIVATE);
+        $translator = \App\Core\Container::get('translator');
+        $service = new MessageService();
+        $userAId = (int) $params['userAId'];
+        $userBId = (int) $params['userBId'];
+
+        try {
+            $thread = $service->threadForAdmin($userAId, $userBId);
+        } catch (\Throwable $exception) {
+            Flash::add('danger', $translator->get('admin.thread_not_found'));
+            return $this->redirect('/admin/messages');
+        }
+        (new AuditService())->log((int) Auth::user()['id'], 'staff.messages_thread_access_requested', 'conversation', $thread['conversation_key'], [
+            'participant_ids' => [$userAId, $userBId],
+        ]);
+
+        if ($request->method() === 'POST') {
+            Validator::requireCsrf($request);
+            $reason = trim((string) $request->input('access_reason'));
+            if ($reason === '') {
+                (new AuditService())->log((int) Auth::user()['id'], 'staff.messages_thread_view_denied', 'conversation', $thread['conversation_key'], [
+                    'reason_missing' => true,
+                    'participant_ids' => [$userAId, $userBId],
+                ]);
+
+                return $this->view('admin/message-thread', [
+                    'thread' => $thread,
+                    'accessApproved' => false,
+                    'accessReason' => '',
+                    'errorKey' => 'validation.access_reason_required',
+                ]);
+            }
+
+            (new AuditService())->log((int) Auth::user()['id'], 'staff.messages_thread_viewed', 'conversation', $thread['conversation_key'], [
+                'reason' => $reason,
+                'participant_ids' => [$userAId, $userBId],
+            ]);
+
+            return $this->view('admin/message-thread', [
+                'thread' => $thread,
+                'accessApproved' => true,
+                'accessReason' => $reason,
+                'errorKey' => null,
+            ]);
+        }
+
+        return $this->view('admin/message-thread', [
+            'thread' => $thread,
+            'accessApproved' => false,
+            'accessReason' => '',
+            'errorKey' => null,
         ]);
     }
 
@@ -240,13 +317,117 @@ final class AdminController extends Controller
                 'max_hours_per_week' => $weekHours,
                 'max_hours_per_month' => $monthHours,
             ]);
-            (new AuditService())->log((int) Auth::user()['id'], 'admin.settings_updated', 'settings', 'booking');
+            (new AuditService())->log((int) Auth::user()['id'], 'admin.booking_settings_updated', 'settings', 'booking', [
+                'booking_start_hour' => $startHour,
+                'booking_end_hour' => $endHour,
+                'max_hours_per_week' => $weekHours,
+                'max_hours_per_month' => $monthHours,
+            ]);
             Flash::add('success', $translator->get('admin.settings_saved'));
             return $this->redirect('/admin/settings');
         }
 
         return $this->view('admin/settings', [
             'settings' => $settings->bookingRules(),
+        ]);
+    }
+
+    public function integrations(Request $request, array $params = []): Response
+    {
+        Auth::requirePermission(Permissions::INTEGRATIONS_MANAGE);
+        $settings = new SettingsService();
+        $translator = \App\Core\Container::get('translator');
+
+        if ($request->method() === 'POST') {
+            Validator::requireCsrf($request);
+            $mailEnabled = $request->input('mailjet_enabled') ? '1' : '0';
+            $turnstileEnabled = $request->input('turnstile_enabled') ? '1' : '0';
+            $mailFromEmail = trim((string) $request->input('mail_from_email'));
+            $mailFromName = trim((string) $request->input('mail_from_name'));
+            $turnstileSiteKey = trim((string) $request->input('turnstile_site_key'));
+            $existingMailjet = $settings->mailjetConfig();
+            $existingTurnstile = $settings->turnstileConfig();
+            $mailjetApiKey = trim((string) $request->input('mailjet_api_key')) ?: (string) ($existingMailjet['api_key'] ?? '');
+            $mailjetApiSecret = trim((string) $request->input('mailjet_api_secret')) ?: (string) ($existingMailjet['api_secret'] ?? '');
+            $turnstileSecretKey = trim((string) $request->input('turnstile_secret_key')) ?: (string) ($existingTurnstile['secret_key'] ?? '');
+            $errors = [];
+
+            if ($mailFromEmail !== '' && !filter_var($mailFromEmail, FILTER_VALIDATE_EMAIL)) {
+                $errors['mail_from_email'] = 'validation.email_invalid';
+            }
+            if (strlen($mailFromName) > 150) {
+                $errors['mail_from_name'] = 'validation.sender_name_invalid';
+            }
+            if ($mailEnabled === '1') {
+                if ($mailFromEmail === '') {
+                    $errors['mail_from_email'] = 'validation.mail_from_email_required';
+                }
+                if ($mailFromName === '') {
+                    $errors['mail_from_name'] = 'validation.mail_from_name_required';
+                }
+                if ($mailjetApiKey === '') {
+                    $errors['mailjet_api_key'] = 'validation.mailjet_api_key_required';
+                }
+                if ($mailjetApiSecret === '') {
+                    $errors['mailjet_api_secret'] = 'validation.mailjet_api_secret_required';
+                }
+            }
+            if ($turnstileEnabled === '1' && $turnstileSiteKey === '') {
+                $errors['turnstile_site_key'] = 'validation.turnstile_site_key_required';
+            }
+            if ($turnstileEnabled === '1' && $turnstileSecretKey === '') {
+                $errors['turnstile_secret_key'] = 'validation.turnstile_secret_key_required';
+            }
+            if ($errors !== []) {
+                return $this->view('admin/integrations', [
+                    'mailjet' => $existingMailjet,
+                    'turnstile' => $existingTurnstile,
+                    'masked' => [
+                        'mailjet_api_key' => $settings->secretMask('mailjet_api_key'),
+                        'mailjet_api_secret' => $settings->secretMask('mailjet_api_secret'),
+                        'turnstile_secret_key' => $settings->secretMask('turnstile_secret_key'),
+                    ],
+                    'errors' => $errors,
+                    'old' => $request->all(),
+                ]);
+            }
+
+            $persisted = [
+                'mailjet_enabled' => $mailEnabled,
+                'mail_from_email' => $mailFromEmail,
+                'mail_from_name' => $mailFromName,
+                'turnstile_enabled' => $turnstileEnabled,
+                'turnstile_site_key' => $turnstileSiteKey,
+            ];
+
+            foreach (['mailjet_api_key', 'mailjet_api_secret', 'turnstile_secret_key'] as $secretKey) {
+                $value = trim((string) $request->input($secretKey));
+                if ($value !== '') {
+                    $persisted[$secretKey] = $value;
+                }
+            }
+
+            $settings->updateMany($persisted);
+            (new AuditService())->log((int) Auth::user()['id'], 'admin.integration_settings_updated', 'settings', 'integrations', [
+                'mailjet_enabled' => $mailEnabled === '1',
+                'turnstile_enabled' => $turnstileEnabled === '1',
+                'updated_keys' => array_keys($persisted),
+            ]);
+
+            Flash::add('success', $translator->get('admin.integrations_saved'));
+            return $this->redirect('/admin/integrations');
+        }
+
+        return $this->view('admin/integrations', [
+            'mailjet' => $settings->mailjetConfig(),
+            'turnstile' => $settings->turnstileConfig(),
+            'masked' => [
+                'mailjet_api_key' => $settings->secretMask('mailjet_api_key'),
+                'mailjet_api_secret' => $settings->secretMask('mailjet_api_secret'),
+                'turnstile_secret_key' => $settings->secretMask('turnstile_secret_key'),
+            ],
+            'errors' => [],
+            'old' => [],
         ]);
     }
 
@@ -287,6 +468,41 @@ final class AdminController extends Controller
         Flash::add('success', \App\Core\Container::get('translator')->get('admin.logo_reset'));
 
         return $this->redirect('/admin/branding');
+    }
+
+    public function broadcastMessages(Request $request, array $params = []): Response
+    {
+        Auth::requirePermission(Permissions::MESSAGES_BROADCAST);
+        $translator = \App\Core\Container::get('translator');
+        $roles = (new RoleService())->assignableRoles();
+
+        if ($request->method() === 'POST') {
+            Validator::requireCsrf($request);
+            try {
+                $recipientCount = (new MessageService())->sendBroadcast(
+                    Auth::user(),
+                    (string) $request->input('subject'),
+                    (string) $request->input('body'),
+                    (string) $request->input('target_scope', 'all'),
+                    array_map('intval', (array) $request->input('role_ids', [])),
+                    $translator->locale()
+                );
+                Flash::add('success', $translator->get('admin.broadcast_sent', ['count' => $recipientCount]));
+                return $this->redirect('/admin/messages/broadcast');
+            } catch (ValidationException $exception) {
+                return $this->view('admin/broadcast', [
+                    'roles' => $roles,
+                    'errors' => $exception->errors(),
+                    'old' => $request->all(),
+                ]);
+            }
+        }
+
+        return $this->view('admin/broadcast', [
+            'roles' => $roles,
+            'errors' => [],
+            'old' => ['target_scope' => 'all'],
+        ]);
     }
 
     public function updates(Request $request, array $params = []): Response

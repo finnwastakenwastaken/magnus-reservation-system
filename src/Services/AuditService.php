@@ -9,6 +9,11 @@ use PDO;
 
 /**
  * Records security-relevant and admin actions in the audit_log table.
+ *
+ * Every entry captures the acting user when available, a stable action key,
+ * the logical target type/identifier, contextual metadata, and the request IP.
+ * Controllers and services should prefer action names that read like
+ * `domain.verb` so downstream review stays consistent.
  */
 final class AuditService
 {

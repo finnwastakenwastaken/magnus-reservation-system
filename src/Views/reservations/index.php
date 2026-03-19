@@ -21,6 +21,12 @@ $calendarPayload = [
         'cancelConfirm' => $translator->get('reservation.cancel_confirm'),
         'cancelSuccess' => $translator->get('reservation.cancelled'),
         'genericError' => $translator->get('errors.500'),
+        'today' => $translator->get('reservation.today'),
+        'day' => $translator->get('reservation.view_day'),
+        'week' => $translator->get('reservation.view_week'),
+        'list' => $translator->get('reservation.view_list'),
+        'loading' => $translator->get('reservation.loading'),
+        'noEvents' => $translator->get('reservation.no_events'),
     ],
 ];
 ?>

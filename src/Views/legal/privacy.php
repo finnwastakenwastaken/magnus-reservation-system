@@ -14,6 +14,8 @@
         <p><?= htmlspecialchars($translator->get('legal.why_text'), ENT_QUOTES, 'UTF-8') ?></p>
         <h2 class="h5 mt-4"><?= htmlspecialchars($translator->get('legal.visibility_title'), ENT_QUOTES, 'UTF-8') ?></h2>
         <p><?= htmlspecialchars($translator->get('legal.visibility_text'), ENT_QUOTES, 'UTF-8') ?></p>
+        <h2 class="h5 mt-4"><?= htmlspecialchars($translator->get('legal.oversight_title'), ENT_QUOTES, 'UTF-8') ?></h2>
+        <p><?= htmlspecialchars($translator->get('legal.oversight_text'), ENT_QUOTES, 'UTF-8') ?></p>
         <h2 class="h5 mt-4"><?= htmlspecialchars($translator->get('legal.retention_title'), ENT_QUOTES, 'UTF-8') ?></h2>
         <p><?= htmlspecialchars($translator->get('legal.retention_text'), ENT_QUOTES, 'UTF-8') ?></p>
         <h2 class="h5 mt-4"><?= htmlspecialchars($translator->get('legal.rights_title'), ENT_QUOTES, 'UTF-8') ?></h2>

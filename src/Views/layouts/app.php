@@ -8,6 +8,7 @@ $t = static fn(string $key, array $replace = []): string => $translator->get($ke
 $isAuthenticated = $auth !== null;
 $siteLogoPath = $siteSettings['site_logo_path'] ?? '';
 $notificationCount = $isAuthenticated ? (int) (($auth['unread_notification_count'] ?? 0)) : 0;
+$turnstile = new \App\Services\TurnstileService();
 ?>
 <!doctype html>
 <html lang="<?= htmlspecialchars($translator->locale(), ENT_QUOTES, 'UTF-8') ?>" data-bs-theme="dark">
@@ -17,9 +18,6 @@ $notificationCount = $isAuthenticated ? (int) (($auth['unread_notification_count
     <meta name="csrf-token" content="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
     <title><?= htmlspecialchars($t('app.name'), ENT_QUOTES, 'UTF-8') ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/index.global.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.15/index.global.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.15/index.global.min.css" rel="stylesheet">
     <link href="/assets/app.css" rel="stylesheet">
 </head>
 <body class="app-shell">
@@ -45,7 +43,7 @@ $notificationCount = $isAuthenticated ? (int) (($auth['unread_notification_count
                     <li class="nav-item"><a class="nav-link" href="/notifications"><?= htmlspecialchars($t('nav.notifications'), ENT_QUOTES, 'UTF-8') ?><?php if ($notificationCount > 0): ?> <span class="badge rounded-pill text-bg-danger"><?= $notificationCount ?></span><?php endif; ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/residents"><?= htmlspecialchars($t('nav.residents'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/reservations"><?= htmlspecialchars($t('nav.reservations'), ENT_QUOTES, 'UTF-8') ?></a></li>
-                    <li class="nav-item"><a class="nav-link" href="/messages/inbox"><?= htmlspecialchars($t('nav.messages'), ENT_QUOTES, 'UTF-8') ?></a></li>
+                    <li class="nav-item"><a class="nav-link" href="/messages"><?= htmlspecialchars($t('nav.messages'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <?php if (\App\Core\Auth::hasPermission(\App\Security\Permissions::ADMIN_ACCESS)): ?>
                         <li class="nav-item"><a class="nav-link" href="/admin"><?= htmlspecialchars($t('nav.admin'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <?php endif; ?>
@@ -92,9 +90,8 @@ $notificationCount = $isAuthenticated ? (int) (($auth['unread_notification_count
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 <script src="/assets/app.js"></script>
-<?php if ($config['turnstile']['enabled']): ?>
+<?php if ($turnstile->enabled()): ?>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <?php endif; ?>
 </body>

@@ -75,6 +75,12 @@ use App\Core\Csrf;
                                     <button class="btn btn-sm btn-outline-warning" type="submit"><?= htmlspecialchars($translator->get('admin.password_reset'), ENT_QUOTES, 'UTF-8') ?></button>
                                 </form>
                             <?php endif; ?>
+                            <?php if (!empty($canVerifyUsers) && (int) $user['is_active'] !== 1 && !$targetIsProtected): ?>
+                                <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/verify">
+                                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
+                                    <button class="btn btn-sm btn-outline-success" type="submit"><?= htmlspecialchars($translator->get('admin.verify_user'), ENT_QUOTES, 'UTF-8') ?></button>
+                                </form>
+                            <?php endif; ?>
                             <?php if (!empty($canDeleteUsers) && (int) ($user['is_super_admin'] ?? 0) !== 1): ?>
                                 <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/delete" onsubmit="return confirm('<?= htmlspecialchars($translator->get('admin.confirm_delete'), ENT_QUOTES, 'UTF-8') ?>');">
                                     <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">

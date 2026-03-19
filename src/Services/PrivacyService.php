@@ -8,6 +8,7 @@ use App\Core\Auth;
 use App\Core\Container;
 use App\Core\ValidationException;
 use App\Core\Validator;
+use App\Security\Permissions;
 use PDO;
 use PDOException;
 
@@ -124,7 +125,12 @@ final class PrivacyService
             'id' => $user['id'],
         ]);
 
-        $this->audit->log((int) $user['id'], 'user.privacy_updated', 'user', (string) $user['id']);
+        $this->audit->log((int) $user['id'], 'user.privacy_updated', 'user', (string) $user['id'], [
+            'show_phone_to_users' => $showPhone === 1,
+            'show_contact_notes_to_users' => $showContactNotes === 1,
+            'has_phone_number' => $phone !== '',
+            'has_contact_notes' => $contactNotes !== '',
+        ]);
     }
 
     /**
@@ -220,7 +226,10 @@ final class PrivacyService
                     'email' => $user['pending_email'],
                     'id' => $user['id'],
                 ]);
-                $this->audit->log((int) $user['id'], 'user.email_changed', 'user', (string) $user['id']);
+                $this->audit->log((int) $user['id'], 'user.email_changed', 'user', (string) $user['id'], [
+                    'previous_email' => $user['email'],
+                    'new_email' => $user['pending_email'],
+                ]);
 
                 return true;
             }
@@ -254,7 +263,9 @@ final class PrivacyService
             'id' => $user['id'],
         ]);
 
-        $this->audit->log((int) $user['id'], 'user.password_changed', 'user', (string) $user['id']);
+        $this->audit->log((int) $user['id'], 'user.password_changed', 'user', (string) $user['id'], [
+            'password_rotated' => true,
+        ]);
     }
 
     /**
@@ -282,7 +293,9 @@ final class PrivacyService
         ]);
 
         $this->images->deletePublicPath($current['profile_picture_path'] ?? null);
-        $this->audit->log((int) $user['id'], 'user.profile_picture_updated', 'user', (string) $user['id']);
+        $this->audit->log((int) $user['id'], 'user.profile_picture_updated', 'user', (string) $user['id'], [
+            'profile_picture_updated' => true,
+        ]);
     }
 
     public function removeProfilePicture(array $user): void
@@ -297,7 +310,9 @@ final class PrivacyService
         );
         $stmt->execute(['id' => $user['id']]);
         $this->images->deletePublicPath($current['profile_picture_path']);
-        $this->audit->log((int) $user['id'], 'user.profile_picture_removed', 'user', (string) $user['id']);
+        $this->audit->log((int) $user['id'], 'user.profile_picture_removed', 'user', (string) $user['id'], [
+            'profile_picture_removed' => true,
+        ]);
     }
 
     /**
@@ -312,7 +327,7 @@ final class PrivacyService
      */
     public function deleteOwnAccount(array $user, string $password, bool $confirmed): void
     {
-        if ($user['role'] === 'admin') {
+        if ((int) ($user['is_super_admin'] ?? 0) === 1 || in_array(Permissions::ADMIN_ACCESS, (array) ($user['permission_codes'] ?? []), true)) {
             throw new ValidationException(['delete_account' => 'account.delete_admin_blocked']);
         }
 
@@ -374,7 +389,9 @@ final class PrivacyService
             throw $exception;
         }
 
-        $this->audit->log((int) $user['id'], 'user.self_deleted', 'user', (string) $user['id']);
+        $this->audit->log((int) $user['id'], 'user.self_deleted', 'user', (string) $user['id'], [
+            'mode' => 'anonymized',
+        ]);
         Auth::logout();
     }
 

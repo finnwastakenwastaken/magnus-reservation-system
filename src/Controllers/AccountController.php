@@ -11,6 +11,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\ValidationException;
 use App\Core\Validator;
+use App\Services\AuditService;
 use App\Services\PrivacyService;
 
 /**
@@ -180,6 +181,7 @@ final class AccountController extends Controller
     {
         Auth::requireUser();
         $user = Auth::user();
+        (new AuditService())->log((int) $user['id'], 'user.data_exported', 'user', (string) $user['id']);
         $payload = json_encode((new PrivacyService())->accountData((int) $user['id']), JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR);
 
         return new Response($payload, 200, [

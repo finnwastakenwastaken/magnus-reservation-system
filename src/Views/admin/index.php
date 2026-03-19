@@ -11,11 +11,17 @@
                     <?php if (!empty($canViewMessages)): ?>
                         <a href="/admin/messages" class="btn btn-outline-primary"><?= htmlspecialchars($translator->get('admin.messages_oversight'), ENT_QUOTES, 'UTF-8') ?></a>
                     <?php endif; ?>
+                    <?php if (!empty($canBroadcastMessages)): ?>
+                        <a href="/admin/messages/broadcast" class="btn btn-outline-primary"><?= htmlspecialchars($translator->get('admin.broadcast_messages'), ENT_QUOTES, 'UTF-8') ?></a>
+                    <?php endif; ?>
                     <?php if (!empty($canManageRoles)): ?>
                         <a href="/admin/roles" class="btn btn-outline-primary"><?= htmlspecialchars($translator->get('admin.roles'), ENT_QUOTES, 'UTF-8') ?></a>
                     <?php endif; ?>
                     <?php if (!empty($canManageSettings)): ?>
                         <a href="/admin/settings" class="btn btn-outline-primary"><?= htmlspecialchars($translator->get('admin.settings'), ENT_QUOTES, 'UTF-8') ?></a>
+                    <?php endif; ?>
+                    <?php if (!empty($canManageIntegrations)): ?>
+                        <a href="/admin/integrations" class="btn btn-outline-primary"><?= htmlspecialchars($translator->get('admin.integrations'), ENT_QUOTES, 'UTF-8') ?></a>
                     <?php endif; ?>
                     <?php if (!empty($canManageBranding)): ?>
                         <a href="/admin/branding" class="btn btn-outline-primary"><?= htmlspecialchars($translator->get('admin.branding'), ENT_QUOTES, 'UTF-8') ?></a>
@@ -41,7 +47,15 @@
                     <ul class="list-group list-group-flush">
                         <?php foreach ($pendingUsers as $user): ?>
                             <li class="list-group-item px-0">
-                                <?= htmlspecialchars($user['first_name'] . ' ' . $user['last_name'] . ' (' . $user['apartment_number'] . ')', ENT_QUOTES, 'UTF-8') ?>
+                                <div class="d-flex justify-content-between align-items-center gap-3">
+                                    <span><?= htmlspecialchars($user['first_name'] . ' ' . $user['last_name'] . ' (' . $user['apartment_number'] . ')', ENT_QUOTES, 'UTF-8') ?></span>
+                                    <?php if (!empty($canVerifyUsers)): ?>
+                                        <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/verify">
+                                            <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\App\Core\Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
+                                            <button class="btn btn-sm btn-outline-success" type="submit"><?= htmlspecialchars($translator->get('admin.verify_user'), ENT_QUOTES, 'UTF-8') ?></button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
                             </li>
                         <?php endforeach; ?>
                     </ul>

@@ -27,13 +27,13 @@ final class AuthController extends Controller
     /**
      * Register a resident account and generate a mailbox activation code.
      *
-     * The actual activation code is only surfaced in debug mode; production
-     * installs are expected to deliver it physically to the resident.
+     * The activation code is not shown to the user. Building staff are
+     * expected to deliver it physically to the correct mailbox.
      */
     public function signup(Request $request, array $params = []): Response
     {
         if (Auth::check()) {
-            return $this->redirect('/');
+            return $this->redirect('/reservations');
         }
 
         $translator = \App\Core\Container::get('translator');
@@ -52,9 +52,8 @@ final class AuthController extends Controller
             }
 
             try {
-                $activationCode = (new UserService())->createUser($request->all(), $translator->locale());
-                $messageKey = \App\Core\Container::get('config')['app']['debug'] ? 'auth.signup_success_debug' : 'auth.signup_success';
-                Flash::add('success', $translator->get($messageKey, ['code' => $activationCode]));
+                (new UserService())->createUser($request->all(), $translator->locale());
+                Flash::add('success', $translator->get('auth.signup_success'));
                 return $this->redirect('/activate');
             } catch (ValidationException $exception) {
                 return $this->view('auth/signup', ['old' => $request->all(), 'errors' => $exception->errors()]);
@@ -73,7 +72,7 @@ final class AuthController extends Controller
     public function login(Request $request, array $params = []): Response
     {
         if (Auth::check()) {
-            return $this->redirect('/');
+            return $this->redirect('/reservations');
         }
 
         $translator = \App\Core\Container::get('translator');
@@ -100,7 +99,7 @@ final class AuthController extends Controller
 
             Auth::login($user);
             Flash::add('success', $translator->get('auth.login_success'));
-            return $this->redirect('/');
+            return $this->redirect('/reservations');
         }
 
         return $this->view('auth/login', ['old' => [], 'errors' => []]);
@@ -120,7 +119,7 @@ final class AuthController extends Controller
     public function activate(Request $request, array $params = []): Response
     {
         if (Auth::check()) {
-            return $this->redirect('/');
+            return $this->redirect('/reservations');
         }
 
         $translator = \App\Core\Container::get('translator');

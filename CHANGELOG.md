@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+- Moved Mailjet and Cloudflare Turnstile administration into the admin panel with database-backed settings and masked secrets
+- Added manual resident verification permission and staff actions for pending accounts
+- Expanded audit logging for messaging, settings, verification, privacy changes, and oversight actions
+- Reworked resident messaging into conversation threads with direct replies and admin broadcast messaging
+- Replaced the broken CDN-dependent calendar with a bundled dark calendar UI that works without FullCalendar assets
+- Clarified Docker Compose as the only supported deployment and update path
+
 ## 0.2.0
 
 - Added resident privacy/account settings with data export, email-change verification, password change, and self-service account deletion

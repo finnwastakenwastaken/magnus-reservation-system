@@ -15,10 +15,12 @@ use App\Core\Container;
 final class MailService
 {
     private string $logFile;
+    private SettingsService $settings;
 
     public function __construct()
     {
         $this->logFile = BASE_PATH . '/storage/logs/app.log';
+        $this->settings = new SettingsService();
         if (!is_dir(dirname($this->logFile))) {
             mkdir(dirname($this->logFile), 0775, true);
         }
@@ -95,9 +97,29 @@ final class MailService
         $this->send($recipient['email'], $subject, $body);
     }
 
+    public function notifyUserVerified(array $recipient, string $locale): void
+    {
+        $subject = $locale === 'nl' ? 'Je account is geverifieerd' : 'Your account has been verified';
+        $body = $locale === 'nl'
+            ? "Je account is handmatig geactiveerd door het beheer. Je kunt nu inloggen."
+            : "Your account has been manually verified by staff. You can now sign in.";
+
+        $this->send($recipient['email'], $subject, $body);
+    }
+
+    public function notifyBroadcastMessage(array $recipient, array $sender, string $subjectLine, string $locale): void
+    {
+        $subject = $locale === 'nl' ? 'Nieuw beheerbericht' : 'New admin message';
+        $body = $locale === 'nl'
+            ? "Je hebt een nieuw bericht ontvangen van {$sender['first_name']} {$sender['last_name']}.\nOnderwerp: {$subjectLine}"
+            : "You received a new message from {$sender['first_name']} {$sender['last_name']}.\nSubject: {$subjectLine}";
+
+        $this->send($recipient['email'], $subject, $body);
+    }
+
     private function send(string $toEmail, string $subject, string $text): void
     {
-        $config = Container::get('config')['mailjet'];
+        $config = $this->settings->mailjetConfig();
         if (!$config['enabled']) {
             $this->log("Mail disabled. Would send to {$toEmail}: {$subject}");
             return;

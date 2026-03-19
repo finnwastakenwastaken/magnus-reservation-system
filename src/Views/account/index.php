@@ -8,6 +8,7 @@ $errors ??= [];
 $old ??= [];
 $accountData ??= [];
 $storedUser = $accountData['user'] ?? $user;
+$isStaffAccount = (int) ($user['is_super_admin'] ?? 0) === 1 || in_array(\App\Security\Permissions::ADMIN_ACCESS, (array) ($user['permission_codes'] ?? []), true);
 ?>
 <div class="row g-4">
     <div class="col-12">
@@ -167,7 +168,7 @@ $storedUser = $accountData['user'] ?? $user;
         <div class="card shadow-sm border-danger">
             <div class="card-body">
                 <h2 class="h5 mb-3 text-danger"><?= htmlspecialchars($translator->get('account.delete_account'), ENT_QUOTES, 'UTF-8') ?></h2>
-                <?php if (($storedUser['role'] ?? 'user') === 'admin'): ?>
+                <?php if ($isStaffAccount): ?>
                     <div class="alert alert-warning mb-0"><?= htmlspecialchars($translator->get('account.delete_admin_notice'), ENT_QUOTES, 'UTF-8') ?></div>
                 <?php else: ?>
                     <p class="text-secondary"><?= htmlspecialchars($translator->get('account.delete_explainer'), ENT_QUOTES, 'UTF-8') ?></p>

@@ -16,11 +16,14 @@ final class Permissions
     public const USERS_VIEW = 'users.view';
     public const USERS_EDIT = 'users.edit';
     public const USERS_DELETE = 'users.delete';
+    public const USERS_VERIFY = 'users.verify';
     public const USERS_ASSIGN_ROLES = 'users.assign_roles';
     public const RESERVATIONS_VIEW_ALL = 'reservations.view_all';
     public const RESERVATIONS_MANAGE_ALL = 'reservations.manage_all';
     public const SETTINGS_MANAGE = 'settings.manage';
+    public const INTEGRATIONS_MANAGE = 'integrations.manage';
     public const MESSAGES_VIEW_PRIVATE = 'messages.view_private';
+    public const MESSAGES_BROADCAST = 'messages.broadcast';
     public const BRANDING_MANAGE = 'branding.manage';
     public const UPDATES_MANAGE = 'updates.manage';
     public const ROLES_MANAGE = 'roles.manage';
@@ -37,11 +40,14 @@ final class Permissions
             self::USERS_VIEW,
             self::USERS_EDIT,
             self::USERS_DELETE,
+            self::USERS_VERIFY,
             self::USERS_ASSIGN_ROLES,
             self::RESERVATIONS_VIEW_ALL,
             self::RESERVATIONS_MANAGE_ALL,
             self::SETTINGS_MANAGE,
+            self::INTEGRATIONS_MANAGE,
             self::MESSAGES_VIEW_PRIVATE,
+            self::MESSAGES_BROADCAST,
             self::BRANDING_MANAGE,
             self::UPDATES_MANAGE,
             self::ROLES_MANAGE,

@@ -1,5 +1,6 @@
 .env
 .idea/
+.aiassistant/
 /storage/config/app.env
 /storage/logs/*.log
 /storage/logs/update-status.json
