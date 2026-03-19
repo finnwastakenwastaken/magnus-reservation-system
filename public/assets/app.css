@@ -1,12 +1,251 @@
+:root {
+    --app-bg: #0b1020;
+    --app-bg-secondary: #131a2d;
+    --app-surface: rgba(17, 24, 39, 0.92);
+    --app-surface-strong: #111827;
+    --app-border: rgba(148, 163, 184, 0.18);
+    --app-text: #e5edf8;
+    --app-text-muted: #97a6ba;
+    --app-primary: #60a5fa;
+    --app-primary-strong: #3b82f6;
+    --app-danger: #ef4444;
+    --app-success: #22c55e;
+    --app-warning: #f59e0b;
+}
+
+html,
 body {
+    min-height: 100%;
+}
+
+body.app-shell {
     min-height: 100vh;
+    color: var(--app-text);
     background:
-        radial-gradient(circle at top right, rgba(13, 110, 253, 0.12), transparent 30%),
-        linear-gradient(180deg, #f7f9fc 0%, #eef3f8 100%);
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.22), transparent 28%),
+        radial-gradient(circle at top right, rgba(239, 68, 68, 0.18), transparent 24%),
+        linear-gradient(180deg, var(--app-bg) 0%, #060915 100%);
+}
+
+a {
+    color: #8cc3ff;
+}
+
+.app-navbar {
+    background: rgba(7, 10, 20, 0.88);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--app-border);
+}
+
+.app-brand-mark {
+    color: #dbeafe;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(14, 165, 233, 0.7));
+}
+
+.navbar .nav-link,
+.navbar-brand,
+footer,
+.text-secondary,
+.small,
+.form-text {
+    color: var(--app-text-muted) !important;
+}
+
+.navbar .nav-link:hover,
+.navbar-brand:hover,
+a.link-secondary:hover {
+    color: var(--app-text) !important;
+}
+
+.card,
+.modal-content,
+.list-group-item,
+.dropdown-menu,
+.app-stat-card,
+.upcoming-reservation-card,
+.hero-surface {
+    color: var(--app-text);
+    background: var(--app-surface);
+    border: 1px solid var(--app-border) !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
 }
 
 .hero-surface {
     background:
-        linear-gradient(135deg, rgba(13, 110, 253, 0.06), rgba(255, 193, 7, 0.08)),
-        #ffffff;
+        linear-gradient(145deg, rgba(59, 130, 246, 0.14), rgba(15, 23, 42, 0.72)),
+        var(--app-surface);
+}
+
+.app-stat-card,
+.upcoming-reservation-card {
+    border-radius: 1rem;
+    padding: 1rem 1.1rem;
+}
+
+.table,
+.table > :not(caption) > * > * {
+    color: var(--app-text);
+    border-color: var(--app-border);
+    background: transparent !important;
+}
+
+.table-light,
+.table-light > th,
+.table-light > td,
+thead.table-light th {
+    --bs-table-bg: rgba(148, 163, 184, 0.08);
+    color: var(--app-text);
+}
+
+.form-control,
+.form-select {
+    color: var(--app-text);
+    background: rgba(15, 23, 42, 0.78);
+    border-color: var(--app-border);
+}
+
+.form-control:focus,
+.form-select:focus {
+    color: var(--app-text);
+    background: rgba(15, 23, 42, 0.92);
+    border-color: var(--app-primary);
+    box-shadow: 0 0 0 0.2rem rgba(96, 165, 250, 0.16);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--app-primary-strong), #2563eb);
+    border-color: transparent;
+}
+
+.btn-outline-light,
+.btn-outline-primary,
+.btn-outline-secondary,
+.btn-outline-warning,
+.btn-outline-danger {
+    border-color: var(--app-border);
+}
+
+.alert {
+    border-color: transparent;
+}
+
+.calendar-page .calendar-shell {
+    overflow: hidden;
+}
+
+.calendar-legend {
+    color: var(--app-text-muted);
+}
+
+.legend-swatch {
+    display: inline-block;
+    width: 0.85rem;
+    height: 0.85rem;
+    margin-right: 0.45rem;
+    border-radius: 999px;
+    vertical-align: middle;
+}
+
+.legend-own {
+    background: linear-gradient(135deg, var(--app-primary-strong), #38bdf8);
+}
+
+.legend-reserved {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+}
+
+.reservation-calendar .fc {
+    --fc-border-color: var(--app-border);
+    --fc-page-bg-color: transparent;
+    --fc-neutral-bg-color: rgba(148, 163, 184, 0.08);
+    --fc-list-event-hover-bg-color: rgba(96, 165, 250, 0.12);
+    --fc-now-indicator-color: #f97316;
+    --fc-button-bg-color: rgba(15, 23, 42, 0.92);
+    --fc-button-border-color: var(--app-border);
+    --fc-button-hover-bg-color: rgba(59, 130, 246, 0.2);
+    --fc-button-hover-border-color: rgba(96, 165, 250, 0.45);
+    --fc-button-active-bg-color: rgba(59, 130, 246, 0.35);
+    --fc-button-active-border-color: rgba(96, 165, 250, 0.75);
+}
+
+.reservation-calendar .fc .fc-toolbar-title,
+.reservation-calendar .fc .fc-col-header-cell-cushion,
+.reservation-calendar .fc .fc-timegrid-axis-cushion,
+.reservation-calendar .fc .fc-timegrid-slot-label-cushion,
+.reservation-calendar .fc .fc-list-day-text,
+.reservation-calendar .fc .fc-list-day-side-text {
+    color: var(--app-text);
+}
+
+.reservation-calendar .fc .fc-daygrid-day-number,
+.reservation-calendar .fc .fc-timegrid-slot-label,
+.reservation-calendar .fc .fc-timegrid-axis {
+    color: var(--app-text-muted);
+}
+
+.reservation-calendar .fc .fc-scrollgrid,
+.reservation-calendar .fc .fc-timegrid-slots td,
+.reservation-calendar .fc .fc-timegrid-cols td,
+.reservation-calendar .fc .fc-col-header-cell,
+.reservation-calendar .fc .fc-list-table td {
+    background: transparent;
+}
+
+.reservation-calendar .fc .fc-timegrid-slot {
+    height: 3rem;
+}
+
+.reservation-calendar .fc .fc-highlight {
+    background: rgba(96, 165, 250, 0.2);
+}
+
+.reservation-calendar .fc-event {
+    border: 0;
+    border-radius: 0.85rem;
+    padding: 0.25rem 0.35rem;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.18);
+}
+
+.reservation-calendar .fc-event.calendar-event-own {
+    background: linear-gradient(135deg, #2563eb, #38bdf8);
+}
+
+.reservation-calendar .fc-event.calendar-event-reserved {
+    background: linear-gradient(135deg, #ef4444, #991b1b);
+}
+
+.reservation-calendar .fc-list-event:hover td {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.page-link {
+    color: var(--app-text);
+    background: rgba(15, 23, 42, 0.92);
+    border-color: var(--app-border);
+}
+
+.page-link:hover,
+.page-link:focus {
+    color: var(--app-text);
+    background: rgba(59, 130, 246, 0.18);
+    border-color: var(--app-primary);
+}
+
+.list-group-item {
+    background: transparent;
+}
+
+@media (max-width: 767.98px) {
+    .reservation-calendar .fc .fc-toolbar {
+        gap: 0.75rem;
+    }
+
+    .reservation-calendar .fc .fc-toolbar.fc-header-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .reservation-calendar .fc .fc-toolbar-title {
+        font-size: 1.15rem;
+    }
 }

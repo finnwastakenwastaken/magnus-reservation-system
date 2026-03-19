@@ -23,25 +23,49 @@ final class ReservationController extends Controller
 {
     public function publicOverview(Request $request, array $params = []): Response
     {
-        $selectedMonth = $this->selectedMonthFromInput($request->input('month'));
         $service = new ReservationService();
 
         return $this->view('reservations/public', [
-            'selectedMonth' => $selectedMonth,
-            'reservations' => $service->publicCalendarMonth($selectedMonth),
+            'calendarRules' => $service->rules(),
         ]);
     }
 
     public function index(Request $request, array $params = []): Response
     {
         Auth::requireUser();
-        $selectedMonth = $this->selectedMonthFromInput($request->input('month'));
         $service = new ReservationService();
+        $user = Auth::user();
 
         return $this->view('reservations/index', [
-            'selectedMonth' => $selectedMonth,
-            'reservations' => $service->calendarMonth($selectedMonth),
+            'user' => $user,
+            'calendarRules' => $service->rules(),
+            'upcomingReservations' => $service->userUpcoming((int) $user['id']),
         ]);
+    }
+
+    public function feed(Request $request, array $params = []): Response
+    {
+        Auth::requireUser();
+        $range = $this->rangeFromRequest($request);
+        $events = (new ReservationService())->calendarFeed(Auth::user(), $range['start'], $range['end']);
+
+        return new Response(
+            json_encode(['events' => $events], JSON_THROW_ON_ERROR),
+            200,
+            ['Content-Type' => 'application/json']
+        );
+    }
+
+    public function publicFeed(Request $request, array $params = []): Response
+    {
+        $range = $this->rangeFromRequest($request);
+        $events = (new ReservationService())->publicFeed($range['start'], $range['end']);
+
+        return new Response(
+            json_encode(['events' => $events], JSON_THROW_ON_ERROR),
+            200,
+            ['Content-Type' => 'application/json']
+        );
     }
 
     public function create(Request $request, array $params = []): Response
@@ -73,6 +97,38 @@ final class ReservationController extends Controller
         return $this->view('reservations/create', ['old' => [], 'errors' => []]);
     }
 
+    public function quickCreate(Request $request, array $params = []): Response
+    {
+        Auth::requireUser();
+        Validator::requireCsrf($request);
+        $translator = \App\Core\Container::get('translator');
+
+        try {
+            (new ReservationService())->create(
+                Auth::user(),
+                (string) $request->input('start_datetime'),
+                (string) $request->input('end_datetime')
+            );
+
+            return new Response(
+                json_encode(['ok' => true], JSON_THROW_ON_ERROR),
+                200,
+                ['Content-Type' => 'application/json']
+            );
+        } catch (ValidationException $exception) {
+            $errors = [];
+            foreach ($exception->errors() as $field => $messageKey) {
+                $errors[$field] = $translator->get($messageKey);
+            }
+
+            return new Response(
+                json_encode(['ok' => false, 'errors' => $errors], JSON_THROW_ON_ERROR),
+                422,
+                ['Content-Type' => 'application/json']
+            );
+        }
+    }
+
     public function cancel(Request $request, array $params): Response
     {
         Auth::requireUser();
@@ -83,22 +139,29 @@ final class ReservationController extends Controller
         return $this->redirect('/reservations');
     }
 
-    /**
-     * Normalize the month picker input.
-     *
-     * The UI submits `YYYY-MM`. Invalid values fall back to the current month
-     * instead of bubbling an exception into a 500 response.
-     */
-    private function selectedMonthFromInput(mixed $monthInput): \DateTimeImmutable
+    public function cancelQuick(Request $request, array $params): Response
     {
-        if (!is_string($monthInput) || preg_match('/^\d{4}-\d{2}$/', $monthInput) !== 1) {
-            return new \DateTimeImmutable('first day of this month');
+        Auth::requireUser();
+        Validator::requireCsrf($request);
+        (new ReservationService())->cancel((int) $params['id'], Auth::user());
+
+        return new Response(
+            json_encode(['ok' => true], JSON_THROW_ON_ERROR),
+            200,
+            ['Content-Type' => 'application/json']
+        );
+    }
+
+    private function rangeFromRequest(Request $request): array
+    {
+        try {
+            $start = new \DateTimeImmutable((string) $request->input('start'));
+            $end = new \DateTimeImmutable((string) $request->input('end'));
+        } catch (\Throwable) {
+            $start = new \DateTimeImmutable('first day of this month');
+            $end = $start->modify('+1 month');
         }
 
-        try {
-            return new \DateTimeImmutable($monthInput . '-01');
-        } catch (\Exception) {
-            return new \DateTimeImmutable('first day of this month');
-        }
+        return ['start' => $start, 'end' => $end];
     }
 }

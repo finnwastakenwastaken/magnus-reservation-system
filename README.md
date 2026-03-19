@@ -1,72 +1,129 @@
 # MAGNUS Reservation System
 
-MAGNUS Reservation System is a plain PHP application for managing reservations for a shared living room in an apartment building. It includes resident signup and activation, privacy-aware reservations, internal messaging, bilingual Dutch/English support, role-based staff access, and a first-run web installer.
+MAGNUS Reservation System is a plain PHP and MariaDB application for managing reservations for a shared living room in an apartment complex. It includes resident signup with mailbox activation, a dark-mode reservation calendar, internal messaging, privacy controls, staff roles and permissions, branding management, and a first-run web installer.
 
 ## Overview
 
-The project is designed as a lightweight MVP with a clean, framework-free structure. It uses PDO for database access, MariaDB for storage, Bootstrap for the UI, and Docker Compose as the only supported deployment method.
+This project is intentionally framework-free and Docker Compose only. The supported runtime model is:
 
-Historical non-Docker deployment guides have been removed from the project and are no longer supported.
+1. clone the repository
+2. start the Docker Compose stack
+3. open the web installer
+4. create the first administrator
+5. manage the application from the browser
+
+Legacy deployment models such as shared hosting, standalone VPS installs, manual Apache/Nginx setups, and mutable in-app self-updates are no longer supported.
 
 ## Features
 
-- Resident signup with mailbox-based activation codes
-- Reservation calendar with overlap protection and configurable booking limits
-- Public availability page with no resident-identifying details
-- Internal messaging with optional Mailjet email notifications
-- Privacy-aware account settings, data export, and self-service account deletion
+- Resident signup with mailbox-delivered activation codes
+- Privacy-safe reservation calendar with overlap prevention and booking limits
+- Public availability calendar without personal details
+- Dark mode UI by default
+- Internal messaging with in-app notifications and optional Mailjet email delivery
+- Account, privacy, and profile-picture management
 - Role and permission management for residents, managers, and administrators
-- Admin-managed branding logo and user profile pictures
-- Bilingual Dutch/English interface
-- First-run installer that writes runtime config and creates the first administrator
+- Admin-managed site logo upload
+- Audit logging for sensitive actions
+- Dutch and English translations
+- First-run installer designed for Docker Compose
 
 ## Feature Summary
 
-- Guests can check room availability without logging in.
-- Residents can manage their profile, privacy settings, password, and verified email changes.
-- Staff access is permission-driven, so managers can be granted operational access without receiving full system control.
-- Reservation changes by staff are logged and can notify the affected resident.
+- Logged-in users land directly on the reservation calendar.
+- Guests can view availability but never see resident identities.
+- Staff access is permission-driven rather than hardcoded by role name.
+- Reservation changes made by staff create in-app notifications and can also send email when Mailjet is configured.
+- The in-app updater screen is informational only and points administrators to the supported Docker update workflow.
 
 ## Requirements / Prerequisites
 
 - Docker Engine 24+ or Docker Desktop with the Compose plugin
-- Git for cloning and updating the repository
-- A modern browser for the installer and admin interface
+- Git
+- A modern browser
 
-You do not need PHP, Apache, or MariaDB installed directly on the host machine. The Compose stack provides them.
+You do not need PHP, Apache, or MariaDB installed on the host machine.
 
 ## Installation
 
-### 1. Get the Code
-
-Clone the repository:
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/finnwastakenwastaken/magnus-reservation-system.git
 cd magnus-reservation-system
 ```
 
-If you prefer, download the repository ZIP from GitHub and extract it locally before continuing.
+### 2. Review Environment Defaults
 
-### 2. Start Docker Compose
+The repository includes a safe [.env.example](.env.example). You usually do not need to create `.env` before the first run because the installer writes durable runtime configuration to `storage/config/app.env`.
 
-Build and start the application and database services:
+If you want to prepare values in advance, copy the example file and adjust placeholders:
+
+```bash
+cp .env.example .env
+```
+
+Never commit `.env` or any real credentials.
+
+### 3. Start the Docker Compose Stack
 
 ```bash
 docker compose up -d --build
 ```
 
-Open the app in your browser:
+Open the application in your browser:
 
 ```text
 http://localhost:8080
 ```
 
-### 3. Complete the First-Run Installer
+## Configuration
 
-On a fresh install, the app redirects automatically to `/install`.
+### Important Runtime Paths
 
-Recommended Docker defaults:
+- application runtime config: `storage/config/app.env`
+- install lock: `storage/installed.lock`
+- app storage volume: `app_storage`
+- uploaded images volume: `app_uploads`
+- database volume: `mariadb_data`
+
+### Important Environment Variables
+
+The most important values are:
+
+- `APP_NAME`
+- `APP_URL`
+- `APP_ENV`
+- `APP_DEBUG`
+- `APP_LOCALE`
+- `SESSION_SECURE`
+- `DB_HOST`
+- `DB_PORT`
+- `DB_DATABASE`
+- `DB_USERNAME`
+- `DB_PASSWORD`
+- `DB_ROOT_PASSWORD`
+- `MAILJET_ENABLED`
+- `MAILJET_API_KEY`
+- `MAILJET_API_SECRET`
+- `MAIL_FROM_EMAIL`
+- `MAIL_FROM_NAME`
+- `TURNSTILE_SITE_KEY`
+- `TURNSTILE_SECRET_KEY`
+
+Use placeholder values such as:
+
+- `your_mailjet_api_key`
+- `your_mailjet_api_secret`
+- `your_turnstile_site_key`
+- `your_turnstile_secret_key`
+- `your-domain.example`
+
+## First-Run Installer
+
+On a fresh install the app redirects automatically to `/install`.
+
+Recommended Docker Compose defaults:
 
 - database host: `db`
 - database port: `3306`
@@ -74,240 +131,174 @@ Recommended Docker defaults:
 - database username: `living_room`
 - database password: `change_me_database_password`
 
-These values match the default `docker-compose.yml` configuration unless you changed them before starting the stack.
+The MariaDB container already creates the configured database and database user. The installer then:
 
-### 4. Finish Setup
+- validates the connection
+- applies the schema
+- marks bundled migrations as installed
+- creates the first administrator account
+- writes runtime config to `storage/config/app.env`
+- creates `storage/installed.lock`
 
-In the installer:
-
-- confirm the database connection details
-- set the application URL
-- create the first administrator account
-
-After a successful install:
-
-- config is written to `.env` when the project root is writable, otherwise to `storage/config/app.env`
-- `storage/installed.lock` is created
-- `/install` is blocked until you intentionally reset the install state
-
-## Configuration
-
-The repository includes a safe `.env.example` file. Copy it to `.env` only if you need to prepare values manually before or after running the installer.
-
-```bash
-cp .env.example .env
-```
-
-Important notes:
-
-- never commit `.env`
-- use placeholder values until you are ready to supply real credentials
-- the installer normally writes the main app and database values for you
-
-Important environment variables:
-
-- App:
-  - `APP_NAME`
-  - `APP_ENV`
-  - `APP_DEBUG`
-  - `APP_URL`
-  - `APP_LOCALE`
-  - `SESSION_SECURE`
-- Database:
-  - `DB_HOST`
-  - `DB_PORT`
-  - `DB_DATABASE`
-  - `DB_USERNAME`
-  - `DB_PASSWORD`
-  - `DB_ROOT_PASSWORD`
-- Mailjet:
-  - `MAILJET_ENABLED`
-  - `MAILJET_API_KEY`
-  - `MAILJET_API_SECRET`
-  - `MAIL_FROM_EMAIL`
-  - `MAIL_FROM_NAME`
-- Cloudflare Turnstile:
-  - `TURNSTILE_SITE_KEY`
-  - `TURNSTILE_SECRET_KEY`
-
-The in-app updater remains in the codebase for legacy mutable installs, but it is not a supported operational path for this Docker Compose deployment model. Leave `UPDATE_ENABLED=false` unless you are deliberately testing unsupported behavior.
-
-## First-Run Installer
-
-The installer is intended to work naturally inside Docker Compose:
-
-- the app container connects to the MariaDB service named `db`
-- the MariaDB container already creates the configured database and database user
-- the installer applies the schema, marks shipped migrations as installed, and creates the first administrator account
-
-If installation fails midway:
-
-1. inspect the app logs
-2. fix the underlying issue
-3. retry `/install`
-
-To rerun the installer in development, remove `.env` or `storage/config/app.env` if present, remove `storage/installed.lock`, and then restart the stack.
+After a successful install, `/install` is blocked until you intentionally reset the environment.
 
 ## Usage
 
-### Common Docker Commands
+### Home Screen Behavior
 
-Start or rebuild the stack:
+- guests see a public landing page and public availability calendar
+- authenticated users land on the reservation calendar
+- authenticated users are redirected away from login, signup, and activation pages
 
-```bash
-docker compose up -d --build
-```
+### Reservation Calendar
 
-Stop the stack:
+- the main resident experience is a dark week/day calendar
+- drag across time slots to create a reservation
+- existing reservations are shown as unavailable
+- your own reservations can be cancelled from the calendar
+- server-side rules remain authoritative
 
-```bash
-docker compose down
-```
+Current booking rules:
 
-View logs:
+- bookings must be in the future
+- bookings must stay within the configured booking hours
+- bookings cannot overlap
+- weekly limits use ISO week totals
+- monthly limits use calendar month totals
 
-```bash
-docker compose logs -f
-docker compose logs -f app
-docker compose logs -f db
-```
+### Notifications
 
-Open a shell in the app container:
+Users always receive in-app notifications for important actions such as staff reservation changes. If Mailjet is configured, email delivery is attempted in addition to the in-app notification.
 
-```bash
-docker compose exec app sh
-```
+### Roles and Permissions
 
-### Data Persistence
+The application uses a single primary role per user, with permissions assigned to roles.
 
-- MariaDB data is stored in the named volume `mariadb_data`
-- application runtime state is stored in the named volume `app_storage`
-- uploaded logos and profile pictures are stored in the named volume `app_uploads`
-- the repository bind mount is used for the application source code only
+Default system roles:
 
-Do not run `docker compose down -v` unless you intentionally want to delete the database volume.
+- `user`
+- `manager`
+- `admin`
 
-### Admin Recovery
+Administrators can:
 
-The installer normally creates the first administrator. If you need a manual recovery path, run the bootstrap script inside the app container:
+- create roles
+- edit role names and descriptions
+- assign permissions to roles
+- assign roles to users
 
-```bash
-docker compose exec app php scripts/bootstrap_admin.php <first_name> <last_name> <email> <apartment_number> <password>
-```
-
-Use placeholder values that fit your environment and never commit real credentials.
+The protected administrator path remains guarded so the last privileged administrator cannot be removed accidentally.
 
 ## Updating
 
 Docker Compose is the only supported update path.
 
-1. Pull the latest code:
+### Normal Update Flow
 
 ```bash
 git pull
-```
-
-2. Rebuild and restart the stack:
-
-```bash
 docker compose up -d --build
-```
-
-If you are applying the newer Docker setup for the first time, restart the stack once so Docker creates the writable `app_storage` and `app_uploads` volumes.
-
-3. If the release includes database changes, run migrations inside the app container:
-
-```bash
 docker compose exec app php scripts/migrate.php
+docker compose logs -f app
 ```
 
-4. Check logs:
+### Notes
+
+- use `docker compose up -d --build` after application or Dockerfile changes
+- `docker compose pull` is usually not relevant for the `app` service because it is built from the local repository
+- do not use `docker compose down -v` during normal updates unless you intentionally want to erase the database and runtime volumes
+- if you only need logs after an update:
 
 ```bash
 docker compose logs -f app
 docker compose logs -f db
 ```
 
-Notes:
-
-- `docker compose pull` is usually not needed here because the `app` service is built from the local repository, not pulled as a prebuilt application image
-- `docker compose up -d --build app` is enough when you only need to rebuild the app container
-- keep the `mariadb_data` volume intact during updates unless you are intentionally resetting the database
-
-If an update breaks the stack:
-
-1. return to a known-good Git commit
-2. rebuild with `docker compose up -d --build`
-3. restore your database backup if the issue included destructive data changes
+The in-app updater page is intentionally disabled for this Docker-only deployment model.
 
 ## Privacy and Security Notes
 
-- Keep `.env` and `storage/config/app.env` out of version control.
-- The included `.env.example` file is safe to publish and should be used only as a template.
-- This repository does not include real resident data, contact data, API keys, or private credentials.
-- Guest-facing reservation pages intentionally hide names, apartment numbers, email addresses, and profile pictures.
-- Staff access to user data and message oversight should be disclosed to residents in your real deployment.
-- Use HTTPS in production and set `APP_DEBUG=false`.
+- `.env` must never be committed
+- `storage/config/app.env` contains runtime secrets and must remain out of version control
+- the repository does not include real resident data, credentials, or private contact information
+- guest-facing availability views never expose names, apartment numbers, emails, or profile pictures
+- profile pictures and optional contact fields are resident-controlled and privacy-aware
+- managers and administrators can access additional data only when granted the relevant permissions
+- manager/admin message oversight should be disclosed clearly in real-world house rules and privacy policy usage
+- use HTTPS and set `APP_DEBUG=false` outside local development
 
 ## Troubleshooting
 
 ### The Installer Does Not Load
 
-- make sure the stack is running: `docker compose ps`
-- check the app logs: `docker compose logs -f app`
-- confirm `http://localhost:8080` matches your published port
+```bash
+docker compose ps
+docker compose logs -f app
+```
+
+Check that the app is reachable on `http://localhost:8080`.
 
 ### Database Connection Errors
 
-- confirm the `db` service is healthy: `docker compose ps`
-- verify the app and installer are using `db` as the database host
-- inspect database logs: `docker compose logs -f db`
-- if the error says the credentials are invalid on a stack you already started before, the `mariadb_data` volume probably still contains the original MariaDB user/password
-- for a brand-new local install, resetting the DB volume with `docker compose down -v` and then `docker compose up -d --build` is the fastest recovery path
-- do not remove the volume if you need to keep existing database data; use the original credentials instead
+- confirm the database host is `db`
+- inspect the DB container logs:
 
-### The App Cannot Write `.env` or Uploads
+```bash
+docker compose logs -f db
+```
 
-- restart the stack so Docker creates the `app_storage` and `app_uploads` volumes:
+- if the MariaDB volume was created earlier with different credentials, the stored database user/password may not match your current environment values
+- for a disposable local setup, a full reset is:
+
+```bash
+docker compose down -v
+docker compose up -d --build
+```
+
+Only do this if you intentionally want to delete the database data.
+
+### The App Cannot Write Runtime Config or Uploads
+
+Restart the stack so Docker recreates the named volumes:
 
 ```bash
 docker compose down
 docker compose up -d --build
 ```
 
-- the installer can fall back to `storage/config/app.env` if the project root is not writable
-- rebuild the stack after permission fixes
+The application writes installer config to `storage/config/app.env`, not to a mutable host deployment path.
 
-### Image Uploads Fail
+### Reservation Calendar Does Not Load Correctly
 
-- only PNG, JPG/JPEG, and WEBP are accepted
-- verify PHP upload-related limits if large files fail
-- confirm `public/uploads/` is writable
+- check browser console errors
+- confirm `/reservations/feed` or `/availability/feed` returns data
+- inspect app logs:
+
+```bash
+docker compose logs -f app
+```
 
 ### Mail Notifications Do Not Send
 
-- verify the Mailjet values in `.env`
-- check `storage/logs/app.log`
-- confirm the container has outbound network access
+- keep `MAILJET_ENABLED=false` if mail is not configured
+- verify the Mailjet API values in runtime config
+- inspect `storage/logs/`
 
-### Cloudflare Turnstile Does Not Work
+### Turnstile Validation Fails
 
-- verify the site key and secret in `.env`
-- confirm the configured domain matches your actual app URL
-- check browser console errors and app logs
-
-### Docker Stack Problems After an Update
-
-- inspect logs with `docker compose logs -f`
-- rebuild from scratch with `docker compose up -d --build`
-- only use `docker compose down -v` if you intentionally want a full reset
+- verify the site key and secret
+- confirm your configured app URL matches the Turnstile domain settings
 
 ## Contributing
 
-Contributions are welcome. Open an issue or submit a pull request if you want to improve the app, documentation, or Docker workflow.
+Contributions are welcome.
+
+- open an issue for bug reports or feature proposals
+- open a pull request for focused improvements
+- keep Docker Compose as the only supported runtime model
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the short contribution guide.
 
 ## License
 
-No license file is currently included in this repository. Until a license is added, treat the project as all rights reserved by default.
+No license file is currently included. Until a license is added, treat the project as all rights reserved by default.

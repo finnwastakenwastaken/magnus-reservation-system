@@ -302,7 +302,7 @@ final class AdminController extends Controller
     {
         Auth::requirePermission(Permissions::UPDATES_MANAGE);
         Validator::requireCsrf($request);
-        Flash::add('info', \App\Core\Container::get('translator')->get('admin.updates_checked'));
+        Flash::add('warning', \App\Core\Container::get('translator')->get('admin.updates_disabled'));
 
         return $this->redirect('/admin/updates');
     }
@@ -314,7 +314,6 @@ final class AdminController extends Controller
 
         try {
             (new UpdateService())->installUpdate(Auth::user());
-            Flash::add('success', \App\Core\Container::get('translator')->get('admin.update_installed'));
         } catch (\Throwable $exception) {
             Flash::add('danger', $exception->getMessage());
         }
@@ -329,7 +328,6 @@ final class AdminController extends Controller
 
         try {
             (new UpdateService())->rollbackLatest(Auth::user());
-            Flash::add('warning', \App\Core\Container::get('translator')->get('admin.update_rolled_back'));
         } catch (\Throwable $exception) {
             Flash::add('danger', $exception->getMessage());
         }

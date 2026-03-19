@@ -49,4 +49,48 @@ final class NotificationService
 
         return $stmt->fetchAll();
     }
+
+    public function paginatedForUser(int $userId, int $page, int $perPage): array
+    {
+        $offset = ($page - 1) * $perPage;
+        $countStmt = $this->db->prepare('SELECT COUNT(*) FROM notifications WHERE user_id = :user_id');
+        $countStmt->execute(['user_id' => $userId]);
+        $total = (int) $countStmt->fetchColumn();
+
+        $stmt = $this->db->prepare(
+            "SELECT *
+             FROM notifications
+             WHERE user_id = :user_id
+             ORDER BY is_read ASC, created_at DESC
+             LIMIT {$perPage} OFFSET {$offset}"
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        return ['items' => $stmt->fetchAll(), 'total' => $total];
+    }
+
+    public function markRead(int $notificationId, int $userId): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE notifications
+             SET is_read = 1
+             WHERE id = :id
+               AND user_id = :user_id'
+        );
+        $stmt->execute([
+            'id' => $notificationId,
+            'user_id' => $userId,
+        ]);
+    }
+
+    public function markAllRead(int $userId): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE notifications
+             SET is_read = 1
+             WHERE user_id = :user_id
+               AND is_read = 0'
+        );
+        $stmt->execute(['user_id' => $userId]);
+    }
 }

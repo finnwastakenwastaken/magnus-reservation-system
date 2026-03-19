@@ -15,7 +15,7 @@ use PDOException;
  * - optional database creation
  * - schema/bootstrap migration execution
  * - first admin account creation
- * - writing `.env`
+ * - writing runtime app config to storage/config/app.env
  * - writing the install lock file
  */
 final class InstallerService
@@ -153,14 +153,6 @@ final class InstallerService
             'MAIL_FROM_NAME' => (string) app_env('MAIL_FROM_NAME', 'Living Room App'),
             'TURNSTILE_SITE_KEY' => (string) app_env('TURNSTILE_SITE_KEY', ''),
             'TURNSTILE_SECRET_KEY' => (string) app_env('TURNSTILE_SECRET_KEY', ''),
-            'UPDATE_ENABLED' => (string) app_env('UPDATE_ENABLED', 'false'),
-            'UPDATE_REPOSITORY_URL' => (string) app_env('UPDATE_REPOSITORY_URL', ''),
-            'UPDATE_REPOSITORY_BRANCH' => (string) app_env('UPDATE_REPOSITORY_BRANCH', 'main'),
-            'UPDATE_STRATEGY' => (string) app_env('UPDATE_STRATEGY', 'auto'),
-            'UPDATE_GIT_BIN' => (string) app_env('UPDATE_GIT_BIN', 'git'),
-            'UPDATE_CHECK_AUTOMATIC' => (string) app_env('UPDATE_CHECK_AUTOMATIC', 'false'),
-            'UPDATE_BACKUP_PATH' => (string) app_env('UPDATE_BACKUP_PATH', 'storage/backups'),
-            'UPDATE_TEMP_PATH' => (string) app_env('UPDATE_TEMP_PATH', 'storage/updates'),
         ]);
 
         $lockPath = BASE_PATH . '/storage/installed.lock';

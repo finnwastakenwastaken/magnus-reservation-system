@@ -12,9 +12,9 @@ $errors ??= [];
                 <div class="mb-4">
                     <div class="small text-secondary mb-2"><?= htmlspecialchars($translator->get('admin.current_logo'), ENT_QUOTES, 'UTF-8') ?></div>
                     <?php if (!empty($logoPath)): ?>
-                        <img src="<?= htmlspecialchars($logoPath, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($translator->get('app.name'), ENT_QUOTES, 'UTF-8') ?>" class="img-fluid border rounded p-3 bg-white" style="max-height:120px;">
+                        <img src="<?= htmlspecialchars($logoPath, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($translator->get('app.name'), ENT_QUOTES, 'UTF-8') ?>" class="img-fluid border rounded p-3 bg-body-tertiary" style="max-height:120px;">
                     <?php else: ?>
-                        <div class="border rounded p-4 bg-white text-secondary"><?= htmlspecialchars($translator->get('admin.default_logo_notice'), ENT_QUOTES, 'UTF-8') ?></div>
+                        <div class="border rounded p-4 bg-body-tertiary text-secondary"><?= htmlspecialchars($translator->get('admin.default_logo_notice'), ENT_QUOTES, 'UTF-8') ?></div>
                     <?php endif; ?>
                 </div>
                 <form method="post" action="/admin/branding/logo" enctype="multipart/form-data" class="mb-3">

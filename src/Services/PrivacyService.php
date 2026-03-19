@@ -63,10 +63,13 @@ final class PrivacyService
         $messageStmt = $this->db->prepare(
             'SELECT id, sender_user_id, recipient_user_id, subject, body, created_at, read_at
              FROM messages
-             WHERE sender_user_id = :user_id OR recipient_user_id = :user_id
+             WHERE sender_user_id = :sender_user_id OR recipient_user_id = :recipient_user_id
              ORDER BY created_at DESC'
         );
-        $messageStmt->execute(['user_id' => $userId]);
+        $messageStmt->execute([
+            'sender_user_id' => $userId,
+            'recipient_user_id' => $userId,
+        ]);
 
         return [
             'user' => $user,
@@ -438,8 +441,11 @@ final class PrivacyService
         $this->db->prepare(
             'DELETE FROM password_resets
              WHERE expires_at < :cutoff
-                OR used_at < :cutoff'
-        )->execute(['cutoff' => $passwordResetBefore]);
+                OR used_at < :used_cutoff'
+        )->execute([
+            'cutoff' => $passwordResetBefore,
+            'used_cutoff' => $passwordResetBefore,
+        ]);
 
         $this->db->prepare(
             'DELETE FROM rate_limits
@@ -548,10 +554,14 @@ final class PrivacyService
         $stmt = $this->db->prepare(
             'SELECT id
              FROM users
-             WHERE email = :email OR pending_email = :email
+             WHERE email = :email OR pending_email = :pending_email
              LIMIT 1'
         );
-        $stmt->execute(['email' => strtolower($email)]);
+        $normalized = strtolower($email);
+        $stmt->execute([
+            'email' => $normalized,
+            'pending_email' => $normalized,
+        ]);
 
         return (bool) $stmt->fetchColumn();
     }

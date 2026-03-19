@@ -6,7 +6,6 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./:/var/www/html
       - app_storage:/var/www/html/storage
       - app_uploads:/var/www/html/public/uploads
     environment:

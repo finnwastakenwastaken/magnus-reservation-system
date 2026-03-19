@@ -7,24 +7,29 @@ use App\Core\Csrf;
 $t = static fn(string $key, array $replace = []): string => $translator->get($key, $replace);
 $isAuthenticated = $auth !== null;
 $siteLogoPath = $siteSettings['site_logo_path'] ?? '';
+$notificationCount = $isAuthenticated ? (int) (($auth['unread_notification_count'] ?? 0)) : 0;
 ?>
 <!doctype html>
-<html lang="<?= htmlspecialchars($translator->locale(), ENT_QUOTES, 'UTF-8') ?>">
+<html lang="<?= htmlspecialchars($translator->locale(), ENT_QUOTES, 'UTF-8') ?>" data-bs-theme="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
     <title><?= htmlspecialchars($t('app.name'), ENT_QUOTES, 'UTF-8') ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/index.global.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.15/index.global.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.15/index.global.min.css" rel="stylesheet">
     <link href="/assets/app.css" rel="stylesheet">
 </head>
-<body class="bg-body-tertiary">
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+<body class="app-shell">
+<nav class="navbar navbar-expand-lg app-navbar shadow-sm">
     <div class="container">
-        <a class="navbar-brand fw-semibold d-flex align-items-center gap-2" href="/">
+        <a class="navbar-brand fw-semibold d-flex align-items-center gap-2" href="<?= $isAuthenticated ? '/reservations' : '/' ?>">
             <?php if ($siteLogoPath !== ''): ?>
                 <img src="<?= htmlspecialchars($siteLogoPath, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($t('app.name'), ENT_QUOTES, 'UTF-8') ?>" style="height:40px; width:auto;">
             <?php else: ?>
-                <span class="rounded bg-white text-primary px-2 py-1 fw-bold">M</span>
+                <span class="rounded px-2 py-1 fw-bold app-brand-mark">M</span>
             <?php endif; ?>
             <span><?= htmlspecialchars($t('app.name'), ENT_QUOTES, 'UTF-8') ?></span>
         </a>
@@ -33,11 +38,11 @@ $siteLogoPath = $siteSettings['site_logo_path'] ?? '';
         </button>
         <div class="collapse navbar-collapse" id="navMain">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item"><a class="nav-link" href="/"><?= htmlspecialchars($t('nav.home'), ENT_QUOTES, 'UTF-8') ?></a></li>
+                <li class="nav-item"><a class="nav-link" href="<?= $isAuthenticated ? '/reservations' : '/' ?>"><?= htmlspecialchars($t('nav.home'), ENT_QUOTES, 'UTF-8') ?></a></li>
                 <li class="nav-item"><a class="nav-link" href="/availability"><?= htmlspecialchars($t('nav.availability'), ENT_QUOTES, 'UTF-8') ?></a></li>
                 <?php if ($isAuthenticated): ?>
-                    <li class="nav-item"><a class="nav-link" href="/dashboard"><?= htmlspecialchars($t('nav.dashboard'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/account"><?= htmlspecialchars($t('nav.account'), ENT_QUOTES, 'UTF-8') ?></a></li>
+                    <li class="nav-item"><a class="nav-link" href="/notifications"><?= htmlspecialchars($t('nav.notifications'), ENT_QUOTES, 'UTF-8') ?><?php if ($notificationCount > 0): ?> <span class="badge rounded-pill text-bg-danger"><?= $notificationCount ?></span><?php endif; ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/residents"><?= htmlspecialchars($t('nav.residents'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/reservations"><?= htmlspecialchars($t('nav.reservations'), ENT_QUOTES, 'UTF-8') ?></a></li>
                     <li class="nav-item"><a class="nav-link" href="/messages/inbox"><?= htmlspecialchars($t('nav.messages'), ENT_QUOTES, 'UTF-8') ?></a></li>
@@ -52,12 +57,12 @@ $siteLogoPath = $siteSettings['site_logo_path'] ?? '';
                 <?php if ($isAuthenticated): ?>
                     <form action="/logout" method="post" class="d-inline">
                         <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
-                        <button class="btn btn-sm btn-warning" type="submit"><?= htmlspecialchars($t('nav.logout'), ENT_QUOTES, 'UTF-8') ?></button>
+                        <button class="btn btn-sm btn-outline-warning" type="submit"><?= htmlspecialchars($t('nav.logout'), ENT_QUOTES, 'UTF-8') ?></button>
                     </form>
                 <?php else: ?>
-                    <a class="btn btn-sm btn-light" href="/login"><?= htmlspecialchars($t('nav.login'), ENT_QUOTES, 'UTF-8') ?></a>
+                    <a class="btn btn-sm btn-outline-light" href="/login"><?= htmlspecialchars($t('nav.login'), ENT_QUOTES, 'UTF-8') ?></a>
                     <a class="btn btn-sm btn-outline-light" href="/activate"><?= htmlspecialchars($t('nav.activate'), ENT_QUOTES, 'UTF-8') ?></a>
-                    <a class="btn btn-sm btn-warning" href="/signup"><?= htmlspecialchars($t('nav.signup'), ENT_QUOTES, 'UTF-8') ?></a>
+                    <a class="btn btn-sm btn-primary" href="/signup"><?= htmlspecialchars($t('nav.signup'), ENT_QUOTES, 'UTF-8') ?></a>
                 <?php endif; ?>
             </div>
         </div>
@@ -87,6 +92,8 @@ $siteLogoPath = $siteSettings['site_logo_path'] ?? '';
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script src="/assets/app.js"></script>
 <?php if ($config['turnstile']['enabled']): ?>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <?php endif; ?>

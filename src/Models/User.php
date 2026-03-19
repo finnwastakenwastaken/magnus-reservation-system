@@ -47,6 +47,12 @@ final class User
                     r.description AS role_description,
                     r.is_super_admin,
                     (
+                        SELECT COUNT(*)
+                        FROM notifications n
+                        WHERE n.user_id = u.id
+                          AND n.is_read = 0
+                    ) AS unread_notification_count,
+                    (
                         SELECT GROUP_CONCAT(p.code ORDER BY p.code SEPARATOR \',\')
                         FROM role_permissions rp
                         INNER JOIN permissions p ON p.id = rp.permission_id

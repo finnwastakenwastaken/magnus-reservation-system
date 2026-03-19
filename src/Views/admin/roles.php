@@ -44,7 +44,7 @@ use App\Core\Csrf;
                         <td>
                             <div class="d-flex gap-2">
                                 <?php if ($canEditProtectedRole): ?>
-                                    <a class="btn btn-sm btn-outline-primary" href="/admin/roles/<?= (int) $role['id'] ?>/edit"><?= htmlspecialchars($translator->get('reservation.edit'), ENT_QUOTES, 'UTF-8') ?></a>
+                                    <a class="btn btn-sm btn-outline-primary" href="/admin/roles/<?= (int) $role['id'] ?>/edit"><?= htmlspecialchars($translator->get('admin.role_edit_permissions'), ENT_QUOTES, 'UTF-8') ?></a>
                                 <?php else: ?>
                                     <span class="text-secondary small"><?= htmlspecialchars($translator->get('admin.read_only'), ENT_QUOTES, 'UTF-8') ?></span>
                                 <?php endif; ?>

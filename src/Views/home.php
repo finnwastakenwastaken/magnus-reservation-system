@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $t = static fn(string $key, array $replace = []): string => $translator->get($key, $replace);
 ?>
-<div class="p-5 mb-4 bg-white rounded-4 shadow-sm border hero-surface">
+<div class="p-5 mb-4 rounded-4 shadow-sm border hero-surface">
     <div class="container-fluid py-4">
         <h1 class="display-5 fw-bold"><?= htmlspecialchars($t('home.title'), ENT_QUOTES, 'UTF-8') ?></h1>
         <p class="col-md-8 fs-5 text-secondary"><?= htmlspecialchars($t('home.subtitle'), ENT_QUOTES, 'UTF-8') ?></p>

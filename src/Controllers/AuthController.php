@@ -32,6 +32,10 @@ final class AuthController extends Controller
      */
     public function signup(Request $request, array $params = []): Response
     {
+        if (Auth::check()) {
+            return $this->redirect('/');
+        }
+
         $translator = \App\Core\Container::get('translator');
         $turnstile = new TurnstileService();
 
@@ -68,6 +72,10 @@ final class AuthController extends Controller
      */
     public function login(Request $request, array $params = []): Response
     {
+        if (Auth::check()) {
+            return $this->redirect('/');
+        }
+
         $translator = \App\Core\Container::get('translator');
         $turnstile = new TurnstileService();
 
@@ -92,7 +100,7 @@ final class AuthController extends Controller
 
             Auth::login($user);
             Flash::add('success', $translator->get('auth.login_success'));
-            return $this->redirect('/dashboard');
+            return $this->redirect('/');
         }
 
         return $this->view('auth/login', ['old' => [], 'errors' => []]);
@@ -111,6 +119,10 @@ final class AuthController extends Controller
      */
     public function activate(Request $request, array $params = []): Response
     {
+        if (Auth::check()) {
+            return $this->redirect('/');
+        }
+
         $translator = \App\Core\Container::get('translator');
         $turnstile = new TurnstileService();
 

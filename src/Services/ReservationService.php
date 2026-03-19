@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Core\Container;
 use App\Core\ValidationException;
+use App\Security\Permissions;
 use PDO;
 
 /**
@@ -134,9 +135,10 @@ final class ReservationService
         $recipient = $this->users->findById((int) $reservation['user_id']);
         if ($recipient !== null) {
             $title = $locale === 'nl' ? 'Reservering geannuleerd' : 'Reservation cancelled';
+            $timeRange = date('d-m-Y H:i', strtotime($reservation['start_datetime'])) . ' - ' . date('H:i', strtotime($reservation['end_datetime']));
             $body = $locale === 'nl'
-                ? 'Een beheerder of manager heeft je reservering geannuleerd.'
-                : 'A manager or administrator cancelled your reservation.';
+                ? "Een beheerder of manager heeft je reservering voor {$timeRange} geannuleerd."
+                : "A manager or administrator cancelled your reservation for {$timeRange}.";
             $this->notifications->create((int) $recipient['id'], 'reservation_cancelled', $title, $body, '/reservations');
             $this->mail->notifyReservationCancelled($recipient, $actor, $reservation, $locale);
         }
@@ -197,9 +199,11 @@ final class ReservationService
             $recipient = $this->users->findById((int) $reservation['user_id']);
             if ($recipient !== null) {
                 $title = $locale === 'nl' ? 'Reservering gewijzigd' : 'Reservation changed';
+                $newRange = date('d-m-Y H:i', $start->getTimestamp()) . ' - ' . date('H:i', $end->getTimestamp());
+                $oldRange = date('d-m-Y H:i', strtotime($previous['start_datetime'])) . ' - ' . date('H:i', strtotime($previous['end_datetime']));
                 $body = $locale === 'nl'
-                    ? 'Een beheerder of manager heeft je reservering aangepast.'
-                    : 'A manager or administrator updated your reservation.';
+                    ? "Een beheerder of manager heeft je reservering aangepast van {$oldRange} naar {$newRange}."
+                    : "A manager or administrator changed your reservation from {$oldRange} to {$newRange}.";
                 $current = [
                     'start_datetime' => $start->format('Y-m-d H:i:s'),
                     'end_datetime' => $end->format('Y-m-d H:i:s'),
@@ -258,6 +262,94 @@ final class ReservationService
         ]);
 
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Calendar-feed payload for authenticated users.
+     *
+     * The feed stays privacy-safe for normal residents while still giving them
+     * enough context to understand availability. Their own events are marked so
+     * the UI can offer cancellation actions without exposing more identity data
+     * for other residents.
+     */
+    public function calendarFeed(array $viewer, \DateTimeImmutable $rangeStart, \DateTimeImmutable $rangeEnd): array
+    {
+        $translator = Container::get('translator');
+        $canViewFullDetails = in_array(Permissions::RESERVATIONS_VIEW_ALL, (array) ($viewer['permission_codes'] ?? []), true)
+            || (int) ($viewer['is_super_admin'] ?? 0) === 1;
+        $stmt = $this->db->prepare(
+            'SELECT r.id, r.user_id, r.start_datetime, r.end_datetime, r.status, u.first_name, u.last_name
+             FROM reservations r
+             INNER JOIN users u ON u.id = r.user_id
+             WHERE r.status = :status
+               AND r.start_datetime < :range_end
+               AND r.end_datetime > :range_start
+             ORDER BY r.start_datetime ASC'
+        );
+        $stmt->execute([
+            'status' => 'active',
+            'range_start' => $rangeStart->format('Y-m-d H:i:s'),
+            'range_end' => $rangeEnd->format('Y-m-d H:i:s'),
+        ]);
+
+        return array_map(function (array $row) use ($viewer, $translator, $canViewFullDetails): array {
+            $isOwn = (int) $row['user_id'] === (int) $viewer['id'];
+            if ($isOwn) {
+                $title = $translator->get('reservation.you');
+            } elseif ($canViewFullDetails) {
+                $title = trim($row['first_name'] . ' ' . $row['last_name']);
+            } else {
+                $title = $row['first_name'] . ' ' . strtoupper(substr((string) $row['last_name'], 0, 1)) . '.';
+            }
+
+            return [
+                'id' => (string) $row['id'],
+                'title' => $title,
+                'start' => date(DATE_ATOM, strtotime($row['start_datetime'])),
+                'end' => date(DATE_ATOM, strtotime($row['end_datetime'])),
+                'classNames' => [$isOwn ? 'calendar-event-own' : 'calendar-event-reserved'],
+                'extendedProps' => [
+                    'canCancel' => $isOwn,
+                    'reservationId' => (int) $row['id'],
+                ],
+            ];
+        }, $stmt->fetchAll());
+    }
+
+    /**
+     * Public availability feed with no user identity fields.
+     */
+    public function publicFeed(\DateTimeImmutable $rangeStart, \DateTimeImmutable $rangeEnd): array
+    {
+        $translator = Container::get('translator');
+        $stmt = $this->db->prepare(
+            'SELECT id, start_datetime, end_datetime
+             FROM reservations
+             WHERE status = :status
+               AND start_datetime < :range_end
+               AND end_datetime > :range_start
+             ORDER BY start_datetime ASC'
+        );
+        $stmt->execute([
+            'status' => 'active',
+            'range_start' => $rangeStart->format('Y-m-d H:i:s'),
+            'range_end' => $rangeEnd->format('Y-m-d H:i:s'),
+        ]);
+
+        return array_map(static function (array $row) use ($translator): array {
+            return [
+                'id' => (string) $row['id'],
+                'title' => $translator->get('reservation.reserved'),
+                'start' => date(DATE_ATOM, strtotime($row['start_datetime'])),
+                'end' => date(DATE_ATOM, strtotime($row['end_datetime'])),
+                'classNames' => ['calendar-event-reserved'],
+            ];
+        }, $stmt->fetchAll());
+    }
+
+    public function rules(): array
+    {
+        return $this->settings->bookingRules();
     }
 
     public function paginatedAll(int $page, int $perPage): array

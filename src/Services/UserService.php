@@ -208,8 +208,12 @@ final class UserService
         $params = [];
 
         if ($search) {
-            $where[] = '(u.first_name LIKE :search OR u.last_name LIKE :search OR u.email LIKE :search OR u.apartment_number LIKE :search)';
-            $params['search'] = '%' . $search . '%';
+            $where[] = '(u.first_name LIKE :search_first_name OR u.last_name LIKE :search_last_name OR u.email LIKE :search_email OR u.apartment_number LIKE :search_apartment)';
+            $searchTerm = '%' . $search . '%';
+            $params['search_first_name'] = $searchTerm;
+            $params['search_last_name'] = $searchTerm;
+            $params['search_email'] = $searchTerm;
+            $params['search_apartment'] = $searchTerm;
         }
         if ($isActive !== null) {
             $where[] = 'u.is_active = :is_active';
@@ -396,10 +400,14 @@ final class UserService
         $stmt = $this->db->prepare(
             'SELECT id
              FROM users
-             WHERE email = :email OR pending_email = :email
+             WHERE email = :email OR pending_email = :pending_email
              LIMIT 1'
         );
-        $stmt->execute(['email' => strtolower($email)]);
+        $normalized = strtolower($email);
+        $stmt->execute([
+            'email' => $normalized,
+            'pending_email' => $normalized,
+        ]);
 
         return (bool) $stmt->fetchColumn();
     }

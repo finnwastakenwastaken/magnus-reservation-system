@@ -9,19 +9,24 @@ use App\Core\ValidationException;
 use PDO;
 
 /**
- * Handles resident-to-resident messaging and notification email dispatch.
+ * Handles resident-to-resident messaging plus delivery notifications.
+ *
+ * In-app notifications are the reliable baseline channel. Mailjet email is an
+ * optional secondary channel when outbound mail is configured.
  */
 final class MessageService
 {
     private PDO $db;
     private AuditService $audit;
     private MailService $mail;
+    private NotificationService $notifications;
 
     public function __construct(?AuditService $audit = null, ?MailService $mail = null)
     {
         $this->db = Container::get('db');
         $this->audit = $audit ?? new AuditService();
         $this->mail = $mail ?? new MailService();
+        $this->notifications = new NotificationService();
     }
 
     /**
@@ -67,6 +72,15 @@ final class MessageService
         ]);
 
         $this->audit->log((int) $sender['id'], 'message.sent', 'message', (string) $this->db->lastInsertId());
+        $this->notifications->create(
+            $recipientId,
+            'message_received',
+            $locale === 'nl' ? 'Nieuw bericht ontvangen' : 'New message received',
+            $locale === 'nl'
+                ? "Nieuw bericht van {$sender['first_name']} {$sender['last_name']}.\nOnderwerp: {$subject}"
+                : "New message from {$sender['first_name']} {$sender['last_name']}.\nSubject: {$subject}",
+            '/messages/inbox'
+        );
         $this->mail->notifyUserNewMessage($recipient, $sender, $subject, $locale);
     }
 

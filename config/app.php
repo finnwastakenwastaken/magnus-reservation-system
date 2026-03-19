@@ -26,7 +26,6 @@ return [
         'pagination_size' => (int) app_env('PAGINATION_SIZE', 10),
         'install_lock_path' => BASE_PATH . '/storage/installed.lock',
         'maintenance_lock_path' => BASE_PATH . '/storage/maintenance.lock',
-        'update_lock_path' => BASE_PATH . '/storage/update.lock',
     ],
     'db' => [
         'host' => (string) app_env('DB_HOST', 'db'),
@@ -47,15 +46,5 @@ return [
         'enabled' => app_env('TURNSTILE_SECRET_KEY', '') !== '' && app_env('TURNSTILE_SITE_KEY', '') !== '',
         'site_key' => (string) app_env('TURNSTILE_SITE_KEY', ''),
         'secret_key' => (string) app_env('TURNSTILE_SECRET_KEY', ''),
-    ],
-    'update' => [
-        'enabled' => filter_var(app_env('UPDATE_ENABLED', false), FILTER_VALIDATE_BOOL),
-        'repository_url' => (string) app_env('UPDATE_REPOSITORY_URL', ''),
-        'branch' => (string) app_env('UPDATE_REPOSITORY_BRANCH', 'main'),
-        'strategy' => (string) app_env('UPDATE_STRATEGY', 'auto'),
-        'git_bin' => (string) app_env('UPDATE_GIT_BIN', 'git'),
-        'automatic_check' => filter_var(app_env('UPDATE_CHECK_AUTOMATIC', false), FILTER_VALIDATE_BOOL),
-        'backup_path' => BASE_PATH . '/' . trim((string) app_env('UPDATE_BACKUP_PATH', 'storage/backups'), '/\\'),
-        'temp_path' => BASE_PATH . '/' . trim((string) app_env('UPDATE_TEMP_PATH', 'storage/updates'), '/\\'),
     ],
 ];
